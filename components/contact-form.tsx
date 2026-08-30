@@ -10,7 +10,7 @@ type PricingDetail = { packageName: string; addons: string[]; once: number; mont
 export function ContactForm() {
   const { text } = usePreferences();
   const [status, setStatus] = useState<Status>({ type:"idle", text:"" });
-  const [type, setType] = useState(text.contact.options[0]);
+  const [type, setType] = useState<string>(text.contact.options[0]);
   const [prefill, setPrefill] = useState("");
   const formRef = useRef<HTMLFormElement | null>(null);
 
@@ -21,8 +21,8 @@ export function ContactForm() {
       if (!detail) return;
       const priceRequest = text.contact.options[1];
       setType(priceRequest);
-      const addons = detail.addons.length ? detail.addons.join(", ") : "—";
-      setPrefill(`${detail.packageName}. ${text.pricing.extras}: ${addons}. ${text.pricing.once}: €${detail.once}${detail.monthly ? ` + €${detail.monthly}${text.pricing.perMonth}` : ""}.`);
+      const addons = detail.addons.length ? detail.addons.join(", ") : "â€”";
+      setPrefill(`${detail.packageName}. ${text.pricing.extras}: ${addons}. ${text.pricing.once}: â‚¬${detail.once}${detail.monthly ? ` + â‚¬${detail.monthly}${text.pricing.perMonth}` : ""}.`);
     }
     window.addEventListener("voidworks-pricing-selection", fillFromPricing);
     return () => window.removeEventListener("voidworks-pricing-selection", fillFromPricing);
