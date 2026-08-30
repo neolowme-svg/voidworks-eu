@@ -6,24 +6,18 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function SiteHeader() {
-  const [open, setOpen] = useState(false);
   const pathname = usePathname();
-
+  const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [pathname]);
 
-  const homeHref = pathname === "/" ? "#top" : "/#top";
+  const authPage = pathname === "/login" || pathname === "/register";
+  const onDashboard = pathname.startsWith("/dashboard");
 
   return (
     <header className="site-header">
       <div className="container nav-shell">
-        <Link href={homeHref} className="brand" aria-label="Voidworks home">
-          <Image
-            src="/assets/voidworks-wordmark.png"
-            alt="Voidworks"
-            width={460}
-            height={150}
-            priority
-          />
+        <Link href="/" className="brand" aria-label="Voidworks home">
+          <Image src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150} priority />
         </Link>
 
         <nav className="desktop-nav" aria-label="Hoofdnavigatie">
@@ -34,37 +28,36 @@ export function SiteHeader() {
         </nav>
 
         <div className="nav-actions">
-          <Link href="/login" className="nav-login">
-            Inloggen
-          </Link>
-          <Link href="/#contact" className="button button-primary nav-cta">
-            Project starten
-          </Link>
+          {onDashboard ? (
+            <Link href="/dashboard" className="nav-login">Dashboard</Link>
+          ) : pathname === "/register" ? (
+            <Link href="/login" className="nav-login">Inloggen</Link>
+          ) : (
+            <Link href="/login" className="nav-login">Inloggen</Link>
+          )}
+
+          {authPage ? (
+            <Link href={pathname === "/register" ? "/login" : "/register"} className="button button-primary nav-cta">
+              {pathname === "/register" ? "Inloggen" : "Registreren"}
+            </Link>
+          ) : (
+            <Link href="/#contact" className="button button-primary nav-cta">Project starten</Link>
+          )}
         </div>
 
-        <button
-          className={`menu-button ${open ? "active" : ""}`}
-          type="button"
-          aria-label={open ? "Menu sluiten" : "Menu openen"}
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <span />
-          <span />
-          <span />
+        <button className={`menu-button ${open ? "active" : ""}`} type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+          <span /><span /><span />
         </button>
       </div>
 
       <div className={`mobile-menu ${open ? "open" : ""}`}>
-        <nav className="container mobile-nav" aria-label="Mobiele navigatie">
+        <nav className="container mobile-nav">
           <Link href="/#diensten">Diensten</Link>
           <Link href="/#projecten">Projecten</Link>
           <Link href="/#werkwijze">Werkwijze</Link>
           <Link href="/#contact">Contact</Link>
           <Link href="/login">Inloggen</Link>
-          <Link href="/#contact" className="mobile-project-link">
-            Project starten
-          </Link>
+          <Link href="/register">Registreren</Link>
         </nav>
       </div>
     </header>
