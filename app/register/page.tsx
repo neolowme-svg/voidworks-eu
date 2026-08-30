@@ -1,8 +1,1 @@
-import type { Metadata } from "next";
-import { RegisterForm } from "@/components/register-form";
-
-export const metadata: Metadata = { title: "Account maken", robots: { index: false, follow: false } };
-
-export default function RegisterPage() {
-  return <main className="page auth-page"><section className="auth-section"><div className="container auth-center"><RegisterForm /></div></section></main>;
-}
+import type {Metadata} from "next";import {Suspense} from "react";import {RegisterForm} from "@/components/register-form";export const metadata:Metadata={title:"Register",robots:{index:false,follow:false}};export default function RegisterPage(){return <main className="page auth-page"><section className="auth-section"><div className="container auth-center"><Suspense fallback={<div className="auth-card auth-loading"><span className="mini-spinner"/></div>}><RegisterForm/></Suspense></div></section></main>}

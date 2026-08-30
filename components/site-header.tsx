@@ -25,7 +25,7 @@ export function SiteHeader() {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  const onDashboard = pathname.startsWith("/dashboard");
+  const onDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
   const onLogin = pathname === "/login";
   const onRegister = pathname === "/register";
 
@@ -44,12 +44,12 @@ export function SiteHeader() {
 
   return <header className="site-header">
     <div className="container nav-shell">
-      <Link href="/" className="brand" aria-label="Voidworks home">
+      <Link href="/" className="brand" aria-label={text.nav.home}>
         <Image className="brand-dark" src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150} priority unoptimized />
         <Image className="brand-light" src="/assets/voidworks-wordmark-light.png" alt="Voidworks" width={460} height={150} priority unoptimized />
       </Link>
 
-      <nav className="desktop-nav" aria-label="Main navigation">
+      <nav className="desktop-nav" aria-label={text.nav.mainNavigation}>
         <Link href="/#diensten">{text.nav.services}</Link>
         <Link href="/#projecten">{text.nav.projects}</Link>
         <Link href="/#werkwijze">{text.nav.process}</Link>
@@ -69,7 +69,7 @@ export function SiteHeader() {
           : <Link href="/login" className="button button-primary nav-cta">{text.nav.login}</Link>}
       </div>
 
-      <button className={`menu-button ${open ? "active" : ""}`} type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span /><span /><span /></button>
+      <button className={`menu-button ${open ? "active" : ""}`} type="button" aria-label={text.nav.menu} aria-expanded={open} onClick={() => setOpen((value) => !value)}><span /><span /><span /></button>
     </div>
 
     <div className={`mobile-menu ${open ? "open" : ""}`}>

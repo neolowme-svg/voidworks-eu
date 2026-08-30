@@ -1,0 +1,51 @@
+name: Database backup
+
+on:
+  schedule:
+    - cron: "17 */12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voidworks-database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Create SQL dump
+        env:
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: |
+          set -euo pipefail
+          test -n "$POSTGRES_URL_NON_POOLING"
+          NAME="voidworks-$(date -u +'%Y-%m-%dT%H-%M-%SZ').sql"
+          echo "BACKUP_FILE=$NAME" >> "$GITHUB_ENV"
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            postgres:17 \
+            pg_dump "$POSTGRES_URL_NON_POOLING" \
+              --format=plain \
+              --no-owner \
+              --no-privileges \
+              --clean \
+              --if-exists \
+              --file="/work/$NAME"
+          chmod 600 "$NAME"
+      - name: Upload private backup and apply 7 day retention
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/upload-backup.mjs "$BACKUP_FILE"
+      - name: Remove local dump
+        if: always()
+        run: rm -f "${BACKUP_FILE:-}" || true

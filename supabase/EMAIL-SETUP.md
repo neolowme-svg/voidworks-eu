@@ -1,52 +1,24 @@
-# Voidworks — 6-cijferige verificatiecode
+# Voidworks v9 e-mail setup
 
-## 1. Resend
-- Resend -> Domains -> `voidworks.eu` moet **Verified** zijn.
-- SPF/DKIM records blijven in Cloudflare staan zoals Resend ze opgeeft.
+V9 gebruikt voor registratie een eigen server-side 6-cijferige code. De Supabase OTP-lengte bepaalt deze code dus niet meer.
 
-## 2. Supabase Custom SMTP
-Supabase -> Authentication -> Emails / SMTP Settings:
-- Custom SMTP: **ON**
-- Sender name: `Voidworks`
-- Sender email: `no-reply@voidworks.eu`
-- Host: `smtp.resend.com`
-- Port: `465` (SSL) of `587` (STARTTLS)
-- Username: `resend`
-- Password: jouw Resend API key
+## Verplicht
+1. Resend -> Domains -> `voidworks.eu` moet Verified zijn.
+2. Maak/gebruik een Resend API key.
+3. Vercel -> voidworks-eu -> Settings -> Environment Variables:
+   - `RESEND_API_KEY` = jouw Resend API key
+   - `APP_SECURITY_SECRET` = een lange willekeurige server-only secret
+4. Redeploy.
 
-## 3. Exact 6 cijfers instellen
-Supabase -> Authentication -> Sign In / Providers -> Email:
-- Email provider: **ON**
-- Confirm email: **ON**
-- **Email OTP length: 6**
-- Email OTP expiration: bijvoorbeeld `3600` seconden
+De registratie-mail wordt direct via Resend verstuurd als:
+`Voidworks <no-reply@voidworks.eu>`
 
-Dit is verplicht. Alleen de tekst in de mailtemplate op "6 cijfers" zetten verandert de echte OTP-lengte niet.
+De registratiecode is altijd exact 6 cijfers en verloopt na 10 minuten. Alleen een HMAC-hash van de code wordt in de database opgeslagen.
 
-## 4. Confirm signup template
-Supabase -> Authentication -> Email Templates -> Confirm signup:
-- Subject: `Je Voidworks verificatiecode`
-- Body: plak ALLES uit `supabase/email-confirmation.html`
-- `{{ .Token }}` moet letterlijk in de template blijven staan.
+## Supabase
+Run `supabase/schema.sql` volledig in Supabase -> SQL Editor.
 
-## 5. URL Configuration
-Supabase -> Authentication -> URL Configuration:
-- Site URL: `https://voidworks.eu`
-- Redirect URLs:
-  - `https://voidworks.eu/auth/callback`
-  - `https://www.voidworks.eu/auth/callback`
-  - `http://localhost:3000/auth/callback`
+Bestaande bevestigde Supabase-gebruikers blijven geldig. Nieuwe v9-accounts worden pas bevestigd nadat de eigen 6-cijferige Voidworks-code is ingevoerd.
 
-## 6. Oud e-mailadres opnieuw gebruiken
-Verwijder niet alleen een rij uit `public.profiles`. Het echte login-account staat in `auth.users`.
-
-V8 heeft daarom in Dashboard -> Account een knop **Account verwijderen**. Die verwijdert via de server het echte Supabase Auth-account. Daarna kan hetzelfde e-mailadres opnieuw registreren en krijgt het opnieuw een verificatiemail.
-
-Handmatig kan ook via Supabase -> Authentication -> Users -> Delete user.
-
-## 7. Mail komt niet aan
-- Kijk direct in Resend -> Logs.
-- Geen log: Supabase SMTP-config controleren.
-- Delivered: spam/ongewenst controleren.
-- Failed/Bounced: open de Resend foutmelding.
-- Wacht minimaal 60 seconden tussen nieuwe signup/verificatie-mails.
+## Oud e-mailadres
+Als `Authentication -> Users` de gebruiker nog bevat, is het adres nog geregistreerd. V9 toont dan alleen de normale melding dat het e-mailadres al geregistreerd is. Gebruik Dashboard -> Account verwijderen of verwijder de Auth-user handmatig om hetzelfde adres opnieuw te registreren.

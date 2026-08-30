@@ -1,31 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 
-type Option = { value: string; label: string };
-
-export function CustomSelect({ name, value, onChange, options, placeholder }: { name: string; value: string; onChange: (value: string) => void; options: Option[]; placeholder: string }) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement | null>(null);
-  const selected = options.find((option) => option.value === value);
-
-  useEffect(() => {
-    function close(event: MouseEvent) {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  return <div className="custom-select" ref={root}>
-    <input type="hidden" name={name} value={value} />
-    <button className={`custom-select-trigger ${open ? "open" : ""}`} type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-      <span>{selected?.label || placeholder}</span><i aria-hidden="true" />
-    </button>
-    {open && <div className="custom-select-menu" role="listbox">
-      {options.map((option) => <button key={option.value} type="button" role="option" aria-selected={option.value === value} className={option.value === value ? "selected" : ""} onClick={() => { onChange(option.value); setOpen(false); }}>
-        <span>{option.label}</span>{option.value === value && <b>✓</b>}
-      </button>)}
-    </div>}
-  </div>;
+type Option={value:string;label:string};
+export function CustomSelect({name,value,onChange,options,placeholder}:{name:string;value:string;onChange:(value:string)=>void;options:Option[];placeholder:string}){
+  const[open,setOpen]=useState(false);const root=useRef<HTMLDivElement|null>(null);const items=useRef<Array<HTMLButtonElement|null>>([]);const selected=options.find(option=>option.value===value);const selectedIndex=Math.max(0,options.findIndex(option=>option.value===value));
+  useEffect(()=>{function close(event:MouseEvent){if(!root.current?.contains(event.target as Node))setOpen(false)}document.addEventListener("mousedown",close);return()=>document.removeEventListener("mousedown",close)},[]);
+  function openAt(index:number){setOpen(true);window.setTimeout(()=>items.current[Math.max(0,Math.min(index,options.length-1))]?.focus(),0)}
+  function triggerKey(event:KeyboardEvent<HTMLButtonElement>){if(event.key==="ArrowDown"||event.key==="Enter"||event.key===" "){event.preventDefault();openAt(selectedIndex)}if(event.key==="ArrowUp"){event.preventDefault();openAt(selectedIndex)}}
+  function optionKey(index:number,event:KeyboardEvent<HTMLButtonElement>){if(event.key==="Escape"){event.preventDefault();setOpen(false);root.current?.querySelector<HTMLButtonElement>(".custom-select-trigger")?.focus()}if(event.key==="ArrowDown"){event.preventDefault();items.current[(index+1)%options.length]?.focus()}if(event.key==="ArrowUp"){event.preventDefault();items.current[(index-1+options.length)%options.length]?.focus()}if(event.key==="Home"){event.preventDefault();items.current[0]?.focus()}if(event.key==="End"){event.preventDefault();items.current[options.length-1]?.focus()}}
+  return <div className="custom-select" ref={root}><input type="hidden" name={name} value={value}/><button className={`custom-select-trigger ${open?"open":""}`} type="button" aria-haspopup="listbox" aria-expanded={open} onClick={()=>open?setOpen(false):openAt(selectedIndex)} onKeyDown={triggerKey}><span>{selected?.label||placeholder}</span><i aria-hidden="true"/></button>{open&&<div className="custom-select-menu" role="listbox">{options.map((option,index)=><button ref={node=>{items.current[index]=node}} key={option.value} type="button" role="option" aria-selected={option.value===value} className={option.value===value?"selected":""} onKeyDown={event=>optionKey(index,event)} onClick={()=>{onChange(option.value);setOpen(false);root.current?.querySelector<HTMLButtonElement>(".custom-select-trigger")?.focus()}}><span>{option.label}</span>{option.value===value&&<b>✓</b>}</button>)}</div>}</div>
 }

@@ -36,6 +36,12 @@ export function HomePageContent() {
       <div className="process-list">{text.process.items.map(([number, title, body]) => <article key={title} data-reveal><span>{number}</span><div><h3>{title}</h3><p>{body}</p></div></article>)}</div>
     </div></section>
 
+    <section className="section section-border after-section" id="na-aanvraag"><div className="container">
+      <div className="section-kicker" data-reveal><span>{text.after.kicker}</span></div>
+      <div className="section-heading compact-heading" data-reveal><div><h2>{text.after.title}</h2></div><p>{text.after.intro}</p></div>
+      <div className="after-grid">{text.after.items.map(([number,title,body]) => <article key={number} data-reveal><span>{number}</span><h3>{title}</h3><p>{body}</p></article>)}</div>
+    </div></section>
+
     <section className="section section-border pricing-section" id="prijzen"><div className="container">
       <div className="section-kicker" data-reveal><span>{text.pricing.kicker}</span></div>
       <div className="section-heading compact-heading" data-reveal><div><h2>{text.pricing.title}</h2></div><p>{text.pricing.intro}</p></div><PricingConfigurator />

@@ -1,7 +1,5 @@
+import { RouteLoading } from "@/components/route-loading";
+
 export default function Loading() {
-  return (
-    <div className="route-loading" aria-label="Pagina laden">
-      <span />
-    </div>
-  );
+  return <RouteLoading />;
 }
