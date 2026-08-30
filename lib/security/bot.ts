@@ -1,8 +1,15 @@
+type TurnstileResult = {
+  success?: boolean;
+  hostname?: string;
+  action?: string;
+  "error-codes"?: string[];
+};
+
 export async function verifyTurnstile(token: string | null | undefined, ip?: string) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   if (!secret || !siteKey) return { ok: true, configured: false };
-  if (!token) return { ok: false, configured: true };
+  if (!token || token.length > 2048) return { ok: false, configured: true };
 
   const form = new URLSearchParams();
   form.set("secret", secret);
@@ -15,9 +22,18 @@ export async function verifyTurnstile(token: string | null | undefined, ip?: str
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: form.toString(),
       cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
     });
-    const result = await response.json() as { success?: boolean };
-    return { ok: result.success === true, configured: true };
+    if (!response.ok) return { ok: false, configured: true };
+    const result = await response.json() as TurnstileResult;
+    if (result.success !== true) return { ok: false, configured: true };
+
+    // When Cloudflare supplies a hostname, make sure a production token belongs to Voidworks.
+    const hostname = (result.hostname || "").toLowerCase();
+    if (process.env.NODE_ENV === "production" && hostname && hostname !== "voidworks.eu" && hostname !== "www.voidworks.eu") {
+      return { ok: false, configured: true };
+    }
+    return { ok: true, configured: true };
   } catch {
     return { ok: false, configured: true };
   }

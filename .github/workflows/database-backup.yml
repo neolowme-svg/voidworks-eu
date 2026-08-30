@@ -46,6 +46,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/upload-backup.mjs "$BACKUP_FILE"
+      - name: Clean expired security records
+        env:
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: |
+          docker run --rm postgres:17 psql "$POSTGRES_URL_NON_POOLING" -v ON_ERROR_STOP=1 -c "select public.cleanup_security_data();"
       - name: Remove local dump
         if: always()
         run: rm -f "${BACKUP_FILE:-}" || true

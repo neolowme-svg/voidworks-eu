@@ -26,16 +26,18 @@ export function sameOrigin(request: Request) {
 
 export function rejectCrossOrigin(request: Request) {
   if (sameOrigin(request)) return null;
-  return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+  return NextResponse.json({ error: "INVALID_ORIGIN" }, { status: 403 });
 }
 
 export function isLikelyBotTrap(value: unknown) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+// Only reject stale/invalid forms. Fast human submissions are allowed because Turnstile
+// and the honeypot already cover automated submissions without false-positive timing checks.
 export function validFormAge(startedAt: unknown) {
   const timestamp = Number(startedAt);
   if (!Number.isFinite(timestamp)) return false;
   const age = Date.now() - timestamp;
-  return age >= 700 && age <= 2 * 60 * 60 * 1000;
+  return age >= 0 && age <= 2 * 60 * 60 * 1000;
 }

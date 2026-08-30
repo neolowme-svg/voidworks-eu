@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     if (profile?.email_verified_at) return NextResponse.json({ ok: true });
 
     const code = sixDigitCode();
-    await admin.from("email_verification_codes").upsert({
+    const { error: codeError } = await admin.from("email_verification_codes").upsert({
       user_id: user.id,
       code_hash: hashSecret(code, "verify-email"),
       expires_at: new Date(Date.now() + VERIFY_CODE_MINUTES * 60 * 1000).toISOString(),
@@ -31,8 +31,9 @@ export async function POST(request: Request) {
       consumed_at: null,
       last_sent_at: new Date().toISOString(),
     });
-    await sendVerificationCode(email, profile?.full_name || user.user_metadata?.full_name || "", code, locale);
-    return NextResponse.json({ ok: true });
+    if (codeError) return NextResponse.json({ error:"RESEND_FAILED" }, { status:500 });
+    try { await sendVerificationCode(email, profile?.full_name || user.user_metadata?.full_name || "", code, locale); } catch { return NextResponse.json({ error:"EMAIL_SEND_FAILED" }, { status:503 }); }
+    return NextResponse.json({ ok:true }, { headers:{ "Cache-Control":"no-store" } });
   } catch {
     return NextResponse.json({ error: "RESEND_FAILED" }, { status: 500 });
   }

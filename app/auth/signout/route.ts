@@ -10,6 +10,6 @@ export async function GET(request: NextRequest) {
   await supabase.auth.signOut({ scope:"local" });
   const url = new URL("/login", request.url);
   const reason = request.nextUrl.searchParams.get("reason");
-  if (reason === "session-expired") url.searchParams.set("reason", "session-expired");
+  if (reason === "session-expired" || reason === "account-missing") url.searchParams.set("reason", reason);
   return NextResponse.redirect(url);
 }

@@ -36,11 +36,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "INVALID_INPUT" }, { status: 400 });
     }
 
-    if (await findAuthUserByEmail(email)) {
-      return NextResponse.json({ error: "EMAIL_REGISTERED" }, { status: 409 });
-    }
-
     const admin = createAdminClient();
+    const existingUser = await findAuthUserByEmail(email);
+    if (existingUser) {
+      const { data: existingProfile, error: existingProfileError } = await admin.from("profiles").select("id").eq("id", existingUser.id).maybeSingle();
+      if (existingProfileError) return NextResponse.json({ error:"REGISTER_FAILED" }, { status:500 });
+      if (existingProfile) return NextResponse.json({ error:"EMAIL_REGISTERED" }, { status:409 });
+      // Orphaned Auth user: the app account was deleted, so remove the stale auth record before re-registration.
+      const { error: orphanDeleteError } = await admin.auth.admin.deleteUser(existingUser.id);
+      if (orphanDeleteError) return NextResponse.json({ error:"REGISTER_FAILED" }, { status:500 });
+    }
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
@@ -49,7 +54,7 @@ export async function POST(request: Request) {
     });
     if (error || !data.user) {
       if (error?.message.toLowerCase().includes("already")) return NextResponse.json({ error: "EMAIL_REGISTERED" }, { status: 409 });
-      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 400 });
+      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 400, headers: { "Cache-Control":"no-store" } });
     }
 
     const code = sixDigitCode();
@@ -73,7 +78,7 @@ export async function POST(request: Request) {
     });
     if (profileError || codeError) {
       await admin.auth.admin.deleteUser(data.user.id);
-      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500 });
+      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500, headers: { "Cache-Control":"no-store" } });
     }
 
     try {
@@ -85,6 +90,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, verificationRequired: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch {
-    return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500 });
+    return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500, headers: { "Cache-Control":"no-store" } });
   }
 }

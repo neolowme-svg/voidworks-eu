@@ -16,19 +16,12 @@ export default async function DashboardPage() {
   if (!(await validateAppSession(user.id))) redirect("/auth/signout?reason=session-expired");
 
   const admin = createAdminClient();
-  let { data: profile } = await admin.from("profiles").select("full_name,email,email_verified_at").eq("id", user.id).maybeSingle();
-  if (!profile) {
-    const needsVerification = user.user_metadata?.voidworks_verification_required === true;
-    const { data } = await admin.from("profiles").upsert({
-      id:user.id, email:user.email || null, full_name:user.user_metadata?.full_name || "",
-      email_verified_at:needsVerification ? null : (user.email_confirmed_at || new Date().toISOString()), updated_at:new Date().toISOString(),
-    }).select("full_name,email,email_verified_at").single();
-    profile = data;
-  }
-  if (profile && !profile.email_verified_at && user.email_confirmed_at && user.user_metadata?.voidworks_verification_required !== true) {
+  const { data: profile, error: profileError } = await admin.from("profiles").select("full_name,email,email_verified_at").eq("id", user.id).maybeSingle();
+  if (profileError || !profile) redirect("/auth/signout?reason=account-missing");
+  if (!profile.email_verified_at && user.email_confirmed_at && user.user_metadata?.voidworks_verification_required !== true) {
     const verifiedAt = user.email_confirmed_at;
     await admin.from("profiles").update({ email_verified_at: verifiedAt, updated_at:new Date().toISOString() }).eq("id", user.id);
-    profile = { ...profile, email_verified_at: verifiedAt };
+    profile.email_verified_at = verifiedAt;
   }
   if (!profile?.email_verified_at) redirect(`/register?verify=${encodeURIComponent(user.email || "")}`);
 

@@ -10,15 +10,21 @@ import { BotChallenge } from "@/components/bot-challenge";
 const OTP_LENGTH = 6;
 
 function passwordStrength(value: string) {
-  const checks = { length:value.length >= 12, lower:/[a-z]/.test(value), upper:/[A-Z]/.test(value), number:/\d/.test(value), symbol:/[^A-Za-z0-9\s]/.test(value) };
+  const checks = {
+    length: value.length >= 12,
+    lower: /[a-z]/.test(value),
+    upper: /[A-Z]/.test(value),
+    number: /\d/.test(value),
+    symbol: /[^A-Za-z0-9\s]/.test(value),
+  };
   const count = Object.values(checks).filter(Boolean).length;
-  return { checks, count, valid:count === 5 };
+  return { checks, count, valid: count === 5 };
 }
 
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { text } = usePreferences();
+  const { text, locale } = usePreferences();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [visible, setVisible] = useState(false);
@@ -31,6 +37,8 @@ export function RegisterForm() {
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [cooldown, setCooldown] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [challengeReady, setChallengeReady] = useState(false);
+  const [challengeKey, setChallengeKey] = useState(0);
   const startedAt = useRef(Date.now());
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
   const strength = useMemo(() => passwordStrength(password), [password]);
@@ -40,12 +48,20 @@ export function RegisterForm() {
   const checks = [strength.checks.length, strength.checks.lower, strength.checks.upper, strength.checks.number, strength.checks.symbol];
   const strengthLabel = !password ? text.auth.empty : strength.count <= 1 ? text.auth.weak : strength.count <= 3 ? text.auth.fair : strength.count === 4 ? text.auth.strong : text.auth.veryStrong;
 
+  function resetChallenge() {
+    setTurnstileToken("");
+    setChallengeReady(false);
+    setChallengeKey((value) => value + 1);
+    startedAt.current = Date.now();
+  }
+
   useEffect(() => {
     const verifyEmail = searchParams.get("verify");
     if (verifyEmail && !verifyOpen) {
       setPendingEmail(verifyEmail.trim().toLowerCase());
       setDigits(Array(OTP_LENGTH).fill(""));
       setCooldown(0);
+      setStatus("");
       setVerifyOpen(true);
       window.setTimeout(() => inputs.current[0]?.focus(), 80);
     }
@@ -62,72 +78,124 @@ export function RegisterForm() {
     if (codeValue === "RATE_LIMIT") return text.auth.rateLimit;
     if (codeValue === "BOT_CHECK_FAILED") return text.auth.botFailed;
     if (codeValue === "EMAIL_SEND_FAILED") return text.auth.emailUnavailable;
-    return text.auth.loginFailed;
+    if (codeValue === "INVALID_INPUT") return text.auth.invalidInput;
+    return text.auth.registerFailed;
   }
 
   function openVerification(email: string, name: string) {
-    setPendingEmail(email); setPendingName(name); setDigits(Array(OTP_LENGTH).fill("")); setCooldown(60); setStatus(""); setVerifyOpen(true);
+    setPendingEmail(email);
+    setPendingName(name);
+    setDigits(Array(OTP_LENGTH).fill(""));
+    setCooldown(60);
+    setStatus("");
+    setVerifyOpen(true);
     window.setTimeout(() => inputs.current[0]?.focus(), 80);
   }
 
   async function register(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setStatus("");
+    event.preventDefault();
+    setStatus("");
+    if (!challengeReady) return setStatus(text.auth.securityWaiting);
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const email = String(form.get("email") ?? "").trim().toLowerCase();
     const passwordValue = String(form.get("password") ?? "");
     const confirm = String(form.get("confirm") ?? "");
     const companyWebsite = String(form.get("companyWebsite") ?? "");
-    if (name.length < 2) return setStatus(text.auth.namePlaceholder);
+    if (name.length < 2) return setStatus(text.auth.invalidInput);
     if (!strength.valid) return setStatus(`${text.auth.need}: ${labels.filter((_, index) => !checks[index]).join(", ")}.`);
     if (passwordValue !== confirm) return setStatus(text.auth.noMatch);
 
     setBusy(true);
     try {
       const response = await fetch("/api/auth/register", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ name, email, password:passwordValue, companyWebsite, startedAt:startedAt.current, turnstileToken, locale:document.documentElement.lang }),
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        credentials:"same-origin",
+        body:JSON.stringify({ name, email, password:passwordValue, companyWebsite, startedAt:startedAt.current, turnstileToken, locale }),
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) { setStatus(errorText(String(result.error || ""))); return; }
+      if (!response.ok) {
+        setStatus(errorText(String(result.error || "")));
+        resetChallenge();
+        return;
+      }
       openVerification(email, name);
+    } catch {
+      setStatus(text.auth.registerFailed);
+      resetChallenge();
     } finally { setBusy(false); }
   }
 
   function setDigit(index:number, raw:string) {
     const value = raw.replace(/\D/g, "").slice(-1);
-    setDigits((current) => { const next=[...current]; next[index]=value; return next; });
-    if (value && index < OTP_LENGTH-1) inputs.current[index+1]?.focus();
+    setDigits((current) => { const next = [...current]; next[index] = value; return next; });
+    if (value && index < OTP_LENGTH - 1) inputs.current[index + 1]?.focus();
   }
+
   function keyDown(index:number, event:KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Backspace" && !digits[index] && index>0) inputs.current[index-1]?.focus();
-    if (event.key === "ArrowLeft" && index>0) inputs.current[index-1]?.focus();
-    if (event.key === "ArrowRight" && index<OTP_LENGTH-1) inputs.current[index+1]?.focus();
+    if (event.key === "Backspace" && !digits[index] && index > 0) inputs.current[index - 1]?.focus();
+    if (event.key === "ArrowLeft" && index > 0) inputs.current[index - 1]?.focus();
+    if (event.key === "ArrowRight" && index < OTP_LENGTH - 1) inputs.current[index + 1]?.focus();
   }
+
   function pasteCode(textValue:string) {
-    const clean=textValue.replace(/\D/g, "").slice(0, OTP_LENGTH);
+    const clean = textValue.replace(/\D/g, "").slice(0, OTP_LENGTH);
     if (!clean) return;
-    setDigits(Array.from({length:OTP_LENGTH},(_,index)=>clean[index]??""));
-    inputs.current[Math.max(0,Math.min(clean.length,OTP_LENGTH)-1)]?.focus();
+    setDigits(Array.from({ length:OTP_LENGTH }, (_, index) => clean[index] ?? ""));
+    inputs.current[Math.max(0, Math.min(clean.length, OTP_LENGTH) - 1)]?.focus();
   }
 
   async function startSession() {
-    const response = await fetch("/api/auth/session/start", { method:"POST" });
+    const response = await fetch("/api/auth/session/start", { method:"POST", credentials:"same-origin" });
     return response.ok;
   }
 
   async function verify(event:FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!/^\d{6}$/.test(code)) return setStatus(text.auth.invalidCode);
+    event.preventDefault();
+    if (!/^\d{6}$/.test(code)) return setStatus(text.auth.invalidCode);
     setBusy(true); setStatus("");
     try {
-      const response = await fetch("/api/auth/verify-email", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ email:pendingEmail, code }) });
+      const response = await fetch("/api/auth/verify-email", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        credentials:"same-origin",
+        body:JSON.stringify({ email:pendingEmail, code }),
+      });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) { setStatus(result.error === "RATE_LIMIT" ? text.auth.rateLimit : text.auth.invalidCode); return; }
-      if (!password) { setVerifyOpen(false); router.replace("/login"); router.refresh(); return; }
+      if (!response.ok) {
+        setStatus(result.error === "RATE_LIMIT" ? text.auth.rateLimit : result.error === "CODE_EXPIRED" || result.error === "CODE_LOCKED" || result.error === "INVALID_CODE" ? text.auth.invalidCode : text.auth.verificationFailed);
+        return;
+      }
+
+      // If this modal was opened from the login page we do not know the password.
+      if (!password) {
+        setVerifyOpen(false);
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email:pendingEmail, password });
-      if (error || !(await startSession())) { setVerifyOpen(false); router.replace("/login"); router.refresh(); return; }
-      setVerifyOpen(false); router.replace("/dashboard"); router.refresh();
+      if (error) {
+        setVerifyOpen(false);
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+      if (!(await startSession())) {
+        await supabase.auth.signOut({ scope:"local" });
+        setVerifyOpen(false);
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+      setVerifyOpen(false);
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      setStatus(text.auth.verificationFailed);
     } finally { setBusy(false); }
   }
 
@@ -135,37 +203,63 @@ export function RegisterForm() {
     if (busy || cooldown > 0 || !pendingEmail) return;
     setBusy(true); setStatus("");
     try {
-      const response = await fetch("/api/auth/resend-verification", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ email:pendingEmail, locale:document.documentElement.lang }) });
+      const response = await fetch("/api/auth/resend-verification", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        credentials:"same-origin",
+        body:JSON.stringify({ email:pendingEmail, locale }),
+      });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) { setStatus(result.error === "RATE_LIMIT" ? text.auth.rateLimit : text.auth.loginFailed); return; }
-      setDigits(Array(OTP_LENGTH).fill("")); setCooldown(60); setStatus(text.auth.codeSent); window.setTimeout(() => inputs.current[0]?.focus(),80);
+      if (!response.ok) {
+        setStatus(result.error === "RATE_LIMIT" ? text.auth.rateLimit : result.error === "EMAIL_SEND_FAILED" ? text.auth.emailUnavailable : text.auth.verificationFailed);
+        return;
+      }
+      setDigits(Array(OTP_LENGTH).fill(""));
+      setCooldown(60);
+      setStatus(text.auth.codeSent);
+      window.setTimeout(() => inputs.current[0]?.focus(), 80);
+    } catch {
+      setStatus(text.auth.verificationFailed);
     } finally { setBusy(false); }
   }
 
   return <>
-    <div className="auth-card auth-card-readable"><div className="auth-heading"><span>{text.auth.area}</span><h1>{text.auth.registerTitle}</h1><p>{text.auth.registerText}</p></div>
+    <div className="auth-card auth-card-readable">
+      <div className="auth-heading"><span>{text.auth.area}</span><h1>{text.auth.registerTitle}</h1><p>{text.auth.registerText}</p></div>
       <form className="auth-form" onSubmit={register}>
         <input className="honeypot" name="companyWebsite" tabIndex={-1} autoComplete="off" aria-hidden="true" />
         <label>{text.auth.name}<input name="name" type="text" autoComplete="name" minLength={2} maxLength={80} required placeholder={text.auth.namePlaceholder} /></label>
         <label>{text.auth.email}<input name="email" type="email" autoComplete="email" required placeholder={text.contact.placeholderEmail} /></label>
-        <label>{text.auth.password}<span className="password-input"><input name="password" type={visible?"text":"password"} autoComplete="new-password" minLength={12} required value={password} onChange={(event)=>setPassword(event.target.value)} placeholder={text.auth.passwordPlaceholder} /><button type="button" onClick={()=>setVisible((value)=>!value)}>{visible?text.auth.hide:text.auth.show}</button></span></label>
+        <label>{text.auth.password}<span className="password-input"><input name="password" type={visible ? "text" : "password"} autoComplete="new-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={text.auth.passwordPlaceholder} /><button type="button" onClick={() => setVisible((value) => !value)}>{visible ? text.auth.hide : text.auth.show}</button></span></label>
         <div className="strength" data-score={strength.count}>
-          <div className="strength-head"><span>{text.auth.strength}</span><strong>{strengthLabel}</strong></div><div className="strength-line"><span/><span/><span/><span/><span/></div>
-          <div className="password-rules">{labels.map((label,index)=><span key={label} data-ok={checks[index]}><b>{checks[index]?"✓":"•"}</b>{label}</span>)}</div>
-          {!strength.valid && password && <p className="strength-missing">{text.auth.need}: {labels.filter((_,index)=>!checks[index]).join(", ")}.</p>}
+          <div className="strength-head"><span>{text.auth.strength}</span><strong>{strengthLabel}</strong></div>
+          <div className="strength-line"><span/><span/><span/><span/><span/></div>
+          <div className="password-rules">{labels.map((label,index) => <span key={label} data-ok={checks[index]}><b>{checks[index] ? "✓" : "•"}</b>{label}</span>)}</div>
+          {!strength.valid && password && <p className="strength-missing">{text.auth.need}: {labels.filter((_,index) => !checks[index]).join(", ")}.</p>}
         </div>
-        <label>{text.auth.passwordAgain}<span className="password-input"><input name="confirm" type={confirmVisible?"text":"password"} autoComplete="new-password" minLength={12} required value={confirmPassword} onChange={(event)=>setConfirmPassword(event.target.value)} placeholder={text.auth.repeatPlaceholder} /><button type="button" onClick={()=>setConfirmVisible((value)=>!value)}>{confirmVisible?text.auth.hide:text.auth.show}</button></span>{confirmPassword && <small className={passwordsMatch?"match-ok":"match-bad"}>{passwordsMatch?`✓ ${text.auth.match}`:`✕ ${text.auth.noMatch}`}</small>}</label>
-        <BotChallenge onToken={setTurnstileToken} />
-        <button className="button button-primary auth-submit" disabled={busy}>{busy?text.auth.creating:text.auth.makeAccount}</button>
+        <label>{text.auth.passwordAgain}<span className="password-input"><input name="confirm" type={confirmVisible ? "text" : "password"} autoComplete="new-password" minLength={12} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={text.auth.repeatPlaceholder} /><button type="button" onClick={() => setConfirmVisible((value) => !value)}>{confirmVisible ? text.auth.hide : text.auth.show}</button></span>{confirmPassword && <small className={passwordsMatch ? "match-ok" : "match-bad"}>{passwordsMatch ? `✓ ${text.auth.match}` : `✕ ${text.auth.noMatch}`}</small>}</label>
+        <BotChallenge key={challengeKey} onToken={setTurnstileToken} onReady={setChallengeReady} />
+        {!challengeReady && <small className="security-status">{text.auth.securityWaiting}</small>}
+        <p className="form-consent">{text.contact.consent} <Link href="/terms">{text.legal.terms}</Link> · <Link href="/privacy">{text.legal.privacy}</Link></p>
+        <button className="button button-primary auth-submit" disabled={busy || !challengeReady}>{busy ? text.auth.creating : text.auth.makeAccount}</button>
       </form>
-      <p className={`auth-status ${status?"show":""}`} aria-live="polite">{status}</p><p className="auth-switch">{text.auth.haveAccount} <Link href="/login">{text.auth.login}</Link></p>
+      <p className={`auth-status ${status ? "show" : ""}`} aria-live="polite">{status}</p>
+      <p className="auth-switch">{text.auth.haveAccount} <Link href="/login">{text.auth.login}</Link></p>
     </div>
 
     {verifyOpen && <div className="modal-backdrop"><div className="verify-modal" role="dialog" aria-modal="true" aria-labelledby="verify-title">
       <div className="verify-topline"><div className="verify-icon">V</div><span className="verify-state"><i />{text.auth.codeSent}</span></div>
-      <span className="eyebrow">{text.auth.verifyEyebrow}</span><h2 id="verify-title">{text.auth.verifyTitle}</h2><p>{text.auth.verifyText} <strong>{pendingEmail}</strong>. {pendingName && <span>{pendingName}, </span>}{text.auth.codeHint}</p>
-      <form onSubmit={verify}><div className="otp-boxes otp-six" onPaste={(event)=>{event.preventDefault();pasteCode(event.clipboardData.getData("text"));}}>{digits.map((digit,index)=><input key={index} ref={(node)=>{inputs.current[index]=node;}} value={digit} inputMode="numeric" pattern="[0-9]*" maxLength={1} aria-label={`${text.auth.codeDigit} ${index+1}`} onChange={(event)=>setDigit(index,event.target.value)} onKeyDown={(event)=>keyDown(index,event)} />)}</div><button className="button button-primary verify-submit" disabled={busy || code.length!==6}>{busy?text.auth.verifying:text.auth.verifyButton}</button></form>
-      <p className={`auth-status ${status?"show":""}`} aria-live="polite">{status}</p><div className="verify-help"><button type="button" className="text-button" onClick={resend} disabled={busy || cooldown>0}>{cooldown>0?`${text.auth.resendIn} ${cooldown}s`:text.auth.resend}</button><button type="button" className="text-button" onClick={()=>{setVerifyOpen(false);setStatus("");}}>{text.auth.changeEmail}</button></div>
+      <span className="eyebrow">{text.auth.verifyEyebrow}</span>
+      <h2 id="verify-title">{text.auth.verifyTitle}</h2>
+      <p>{text.auth.verifyText} <strong>{pendingEmail}</strong>. {pendingName && <span>{pendingName}, </span>}{text.auth.codeHint}</p>
+      <form onSubmit={verify}>
+        <div className="otp-boxes otp-six" onPaste={(event) => { event.preventDefault(); pasteCode(event.clipboardData.getData("text")); }}>
+          {digits.map((digit,index) => <input key={index} ref={(node) => { inputs.current[index] = node; }} value={digit} inputMode="numeric" pattern="[0-9]*" maxLength={1} autoComplete={index === 0 ? "one-time-code" : "off"} aria-label={`${text.auth.codeDigit} ${index + 1}`} onChange={(event) => setDigit(index,event.target.value)} onKeyDown={(event) => keyDown(index,event)} />)}
+        </div>
+        <button className="button button-primary verify-submit" disabled={busy || code.length !== 6}>{busy ? text.auth.verifying : text.auth.verifyButton}</button>
+      </form>
+      <p className={`auth-status ${status ? "show" : ""}`} aria-live="polite">{status}</p>
+      <div className="verify-help"><button type="button" className="text-button" onClick={resend} disabled={busy || cooldown > 0}>{cooldown > 0 ? `${text.auth.resendIn} ${cooldown}s` : text.auth.resend}</button><button type="button" className="text-button" onClick={() => { setVerifyOpen(false); setStatus(""); }}>{text.auth.changeEmail}</button></div>
     </div></div>}
   </>;
 }

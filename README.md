@@ -1,40 +1,46 @@
-# Voidworks production v9
+# Voidworks v10
 
-Complete Next.js 15.5.24 + Supabase productieversie.
+Production Next.js/Supabase version for voidworks.eu.
 
-## In v9
-- Donker/licht thema en NL/EN/DE met PNG-vlaggen.
-- Grotere, beter leesbare tekst in navbar, login, pricing, processen en footer.
-- Losse `/login` en `/register`.
-- Eigen exact 6-cijferige e-mailverificatie via Resend met branded Voidworks-mail.
-- Simpele gelokaliseerde melding voor bestaande e-mailadressen.
-- Oude geldige Supabase-accounts kunnen blijven inloggen; ontbrekende profiles worden veilig hersteld.
-- Password strength met kleuren en ontbrekende eisen.
-- Password reset: random one-time token, 15 minuten geldig, token alleen in URL-fragment en alleen als HMAC in de database.
-- Extra app-sessie met Secure HttpOnly cookie, maximaal 7 dagen.
-- Rate limiting, same-origin controles, CSRF op gevoelige account/admin-acties, optionele Cloudflare Turnstile, honeypots en timingchecks.
-- RLS + server-only writes voor verificatie/securitytabellen.
-- CSP, HSTS, anti-clickjacking, nosniff en Permissions-Policy.
-- Admin uitsluitend server-side op exact `neolowme@gmail.com` (of server-only `ADMIN_EMAIL`).
-- Admin databaseback-ups: automatisch elke 12 uur, private `.sql`, 7 dagen retentie, handmatig starten/downloaden/verwijderen.
-- GDPR/AVG Privacy Policy, Terms of Service, Cookie Policy, consent UI en Accessibility-pagina.
-- Google robots/sitemap basis en uitleg van het opleverproces.
-- Prijzen/configurator met pakketafhankelijke add-ons.
+## Main fixes in v10
+- Login/register flow repaired.
+- Turnstile no longer reuses one-time tokens after a failed attempt.
+- Submit buttons wait until the security challenge is ready.
+- Email verification is always exactly six digits.
+- Verification confirms Supabase Auth before finishing the Voidworks profile state.
+- Duplicate registration shows only the localized "email already registered" message.
+- Orphaned Auth users caused by deleting the application profile can re-register safely.
+- NL/EN/DE error/status text is complete for the auth flow.
+- Terms of Service is a separate `/terms` page; privacy, cookies and accessibility have separate pages too.
+- Cookie consent actually controls whether language/theme preferences are persisted.
+- Text/readability increased throughout the site.
+- Security headers, rate limiting, CSRF/origin controls, seven-day app sessions and 15-minute one-time password resets remain enabled.
+- Automated private `.sql` database backup every 12 hours, seven-day retention, plus admin create/download/delete.
 
-## Eenmalig na installatie
-1. Run `supabase/schema.sql` volledig in Supabase SQL Editor.
-2. Vercel server envs toevoegen:
-   - `RESEND_API_KEY`
-   - `APP_SECURITY_SECRET`
-   - optioneel/aanbevolen voor bot protection: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`
-   - voor handmatig backup starten: `GITHUB_BACKUP_TOKEN`
-3. GitHub repo -> Settings -> Secrets and variables -> Actions:
-   - `POSTGRES_URL_NON_POOLING`
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-4. Voor de Vercel backup-knop heeft `GITHUB_BACKUP_TOKEN` alleen Actions write nodig voor repo `neolowme-svg/voidworks-eu`.
+## Required Vercel environment variables
+- `RESEND_API_KEY`
+- `APP_SECURITY_SECRET`
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+- `TURNSTILE_SECRET_KEY`
+- `ADMIN_EMAIL=neolowme@gmail.com`
+- Existing Supabase variables from the Vercel integration
+- `GITHUB_BACKUP_TOKEN` only for the admin "create backup" button
 
-Zie `supabase/EMAIL-SETUP.md` voor de 6-cijferige mailflow.
+## Database
+Run `supabase/schema.sql` in Supabase SQL Editor if the v9 schema has not already been applied. It is idempotent.
 
-## Opmerking beveiliging
-De code bevat defense-in-depth voor de relevante OWASP-risico's, maar geen enkele website kan eerlijk garanderen dat iedere toekomstige kwetsbaarheid onmogelijk is. Houd Next.js/Supabase dependencies en platforminstellingen actueel.
+## GitHub Actions backup secrets
+Repository -> Settings -> Secrets and variables -> Actions:
+- `POSTGRES_URL_NON_POOLING`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## Turnstile
+Production widget hostnames:
+- `voidworks.eu`
+- `www.voidworks.eu`
+
+The website validates Turnstile server-side and renders a fresh challenge after each validation attempt.
+
+## Legal note
+The included privacy/terms/cookie/accessibility pages are a practical GDPR-oriented baseline, not a substitute for legal review for your exact business structure, contracts and jurisdiction.

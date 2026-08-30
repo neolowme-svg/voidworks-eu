@@ -1,9 +1,8 @@
 "use client";
 
-import { usePreferences } from "@/components/preferences-provider";
-
 import Script from "next/script";
 import { useEffect, useId, useRef } from "react";
+import { usePreferences } from "@/components/preferences-provider";
 
 declare global {
   interface Window {
@@ -15,37 +14,58 @@ declare global {
   }
 }
 
-export function BotChallenge({ onToken }: { onToken: (token: string) => void }) {
+export function BotChallenge({ onToken, onReady }: { onToken: (token: string) => void; onReady?: (ready: boolean) => void }) {
   const { text } = usePreferences();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const root = useRef<HTMLDivElement | null>(null);
   const widget = useRef<string>("");
   const id = useId().replace(/:/g, "");
 
-  function render() {
-    if (!siteKey || !root.current || !window.turnstile || widget.current) return;
+  function renderWidget() {
+    if (!siteKey) {
+      onReady?.(true);
+      return;
+    }
+    if (!root.current || !window.turnstile || widget.current) return;
+    onReady?.(false);
     widget.current = window.turnstile.render(root.current, {
       sitekey: siteKey,
       theme: "auto",
       size: "flexible",
-      callback: (token: string) => onToken(token),
-      "expired-callback": () => onToken(""),
-      "error-callback": () => onToken(""),
+      callback: (token: string) => {
+        onToken(token);
+        onReady?.(true);
+      },
+      "expired-callback": () => {
+        onToken("");
+        onReady?.(false);
+      },
+      "timeout-callback": () => {
+        onToken("");
+        onReady?.(false);
+      },
+      "error-callback": () => {
+        onToken("");
+        onReady?.(false);
+      },
     });
   }
 
   useEffect(() => {
-    render();
+    renderWidget();
     return () => {
+      onToken("");
+      onReady?.(false);
       if (widget.current && window.turnstile) window.turnstile.remove(widget.current);
       widget.current = "";
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // callbacks are intentionally not dependencies; remounting is controlled by the parent key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey]);
 
   if (!siteKey) return null;
   return <>
-    <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onLoad={render} />
+    <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onLoad={renderWidget} onReady={renderWidget} />
     <div id={`turnstile-${id}`} className="turnstile-wrap" ref={root} aria-label={text.auth.botProtection} />
   </>;
 }

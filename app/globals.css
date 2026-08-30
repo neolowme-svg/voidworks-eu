@@ -222,7 +222,7 @@ html[data-theme="light"] .verified-state{color:#16845a!important}
 html[data-theme="light"] .verify-modal>p strong{color:#24242a}
 html[data-theme="light"] .footer-bottom{color:#777782}
 
-/* V9 readability, legal, security UI and accessibility */
+/* V10 readability, legal, security UI and accessibility */
 body{font-size:16px}
 .skip-link{position:fixed;left:16px;top:-60px;z-index:1000;padding:11px 15px;border-radius:8px;background:var(--purple);color:#fff;font-weight:800;transition:top .15s ease}.skip-link:focus{top:14px}
 :where(a,button,input,textarea,[tabindex]):focus-visible{outline:3px solid rgba(139,105,255,.85);outline-offset:3px}
@@ -242,8 +242,12 @@ html[data-theme="light"] .after-grid article,html[data-theme="light"] .strength,
 @media(max-width:800px){.after-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr 1fr}.cookie-banner{align-items:stretch;flex-direction:column}.cookie-actions{width:100%}.cookie-actions .button{flex:1}.backup-list article{align-items:flex-start;flex-direction:column}.backup-actions{width:100%}.backup-actions .button{flex:1}.dashboard-top-actions{flex-wrap:wrap}}
 @media(max-width:700px){.auth-card{padding:26px}.auth-heading p{font-size:14.5px}.auth-form label{font-size:13.5px}.password-rules{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}.cookie-banner{left:12px;right:12px;bottom:12px}.cookie-actions{flex-direction:column}.otp-boxes input{height:56px!important;font-size:22px!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
-/* V9 final readability pass */
+/* V10 readability pass */
 .pricing-card>p{font-size:15px;line-height:1.65}.pricing-card ul{font-size:13.5px;line-height:1.65}.pricing-card-top>span{font-size:16px}.pricing-card>strong{font-size:30px}.pricing-select{font-size:13.5px}
 .addon-heading p{font-size:15px;line-height:1.65}.addon-copy strong{font-size:15px}.addon-copy small{font-size:13.5px;line-height:1.6;color:var(--muted)}.addon-option>b{font-size:13.5px}.pricing-summary span{font-size:12.5px}.pricing-summary strong{font-size:24px}.pricing-note{font-size:13px}
 .process-list article>span{font-size:17px}.process-list h3{font-size:23px}.process-list p{font-size:15px}.service-card p,.project-copy p{font-size:15px}.footer-column,.footer-brand p{font-size:14px}.footer-bottom{font-size:12.5px}
 @media(max-width:700px){.pricing-card>p{min-height:0}.addon-copy small{font-size:13px}.pricing-summary span{font-size:12px}}
+
+/* V10 readability + functional security states */
+body{font-size:17px;line-height:1.6}.desktop-nav{font-size:15px}.brand img{width:170px;height:auto}.button{font-size:14.5px}.utility-button,.discord-button{font-size:13.5px}.locale-menu button,.custom-select-menu button{font-size:14px}.section-heading p,.process-intro p,.contact-copy p{font-size:16.5px}.service-card p,.project-copy p,.process-list p,.after-grid p,.pricing-card>p,.addon-heading p{font-size:15.5px}.pricing-card ul,.addon-copy small{font-size:14px}.contact-form label,.auth-form label{font-size:15px}.contact-form input,.contact-form textarea,.auth-form input,.custom-select-trigger{font-size:15px}.auth-heading p{font-size:16.5px}.auth-status,.auth-switch,.text-button{font-size:14px}.form-consent,.form-status{font-size:13.5px}.legal-sections p{font-size:16px}.footer-column,.footer-brand p{font-size:14.5px}.footer-bottom{font-size:13px}.verify-modal>p{font-size:15px}.verify-help .text-button{font-size:14px}.security-status{display:block;margin-top:-3px;color:var(--muted);font-size:13px;line-height:1.5}.turnstile-wrap{min-height:70px}.otp-boxes input{font-size:30px!important}.auth-submit:disabled,.contact-form .button:disabled{opacity:.58;cursor:not-allowed}
+@media(max-width:700px){body{font-size:16px}.auth-heading p{font-size:15.5px}.contact-form label,.auth-form label{font-size:14.5px}.desktop-nav{font-size:14px}.otp-boxes input{font-size:24px!important}.legal-sections p{font-size:15px}}
