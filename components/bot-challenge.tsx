@@ -14,7 +14,15 @@ declare global {
   }
 }
 
-export function BotChallenge({ onToken, onReady }: { onToken: (token: string) => void; onReady?: (ready: boolean) => void }) {
+export function BotChallenge({
+  onToken,
+  onReady,
+  action,
+}: {
+  onToken: (token: string) => void;
+  onReady?: (ready: boolean) => void;
+  action: "login" | "register" | "password_reset" | "contact";
+}) {
   const { text, locale } = usePreferences();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const root = useRef<HTMLDivElement | null>(null);
@@ -27,15 +35,18 @@ export function BotChallenge({ onToken, onReady }: { onToken: (token: string) =>
       return;
     }
     if (!root.current || !window.turnstile || widget.current) return;
+
+    onToken("");
     onReady?.(false);
     widget.current = window.turnstile.render(root.current, {
       sitekey: siteKey,
       theme: "auto",
       language: locale,
       size: "flexible",
+      action,
       callback: (token: string) => {
         onToken(token);
-        onReady?.(true);
+        onReady?.(Boolean(token));
       },
       "expired-callback": () => {
         onToken("");
@@ -64,13 +75,18 @@ export function BotChallenge({ onToken, onReady }: { onToken: (token: string) =>
       if (widget.current && window.turnstile) window.turnstile.remove(widget.current);
       widget.current = "";
     };
-    // callbacks are intentionally not dependencies; remounting is controlled by the parent key.
+    // Parent controls remounts through key after every server validation attempt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteKey, locale]);
+  }, [siteKey, locale, action]);
 
   if (!siteKey) return null;
   return <>
-    <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onLoad={renderWidget} onReady={renderWidget} />
+    <Script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+      strategy="afterInteractive"
+      onLoad={renderWidget}
+      onReady={renderWidget}
+    />
     <div id={`turnstile-${id}`} className="turnstile-wrap" ref={root} aria-label={text.auth.botProtection} />
   </>;
 }

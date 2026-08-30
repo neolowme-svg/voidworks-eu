@@ -14,23 +14,28 @@ export async function POST(request: Request) {
     const code = String(body.code || "").trim();
     const ip = getClientIp(request);
 
-    if (!(await consumeRateLimit(`verify:${ip}:${email}`, 10, 600))) {
-      return NextResponse.json({ error: "RATE_LIMIT" }, { status: 429 });
+    if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: "INVALID_CODE" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    if (!(await consumeRateLimit(`verify:${ip}:${email}`, 12, 600))) {
+      return NextResponse.json({ error: "RATE_LIMIT" }, { status: 429, headers: { "Cache-Control": "no-store" } });
     }
-    if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: "INVALID_CODE" }, { status: 400 });
 
     const user = await findAuthUserByEmail(email);
-    if (!user) return NextResponse.json({ error: "INVALID_CODE" }, { status: 400 });
-    if (user.email_confirmed_at) return NextResponse.json({ ok: true });
+    if (!user) return NextResponse.json({ error: "INVALID_CODE" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    if (user.email_confirmed_at && user.user_metadata?.voidworks_verification_required !== true) {
+      return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    }
 
     const result = await verifyUserCode(user, code);
-    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.error === "VERIFY_FAILED" ? 500 : 400 });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.error === "VERIFY_FAILED" ? 503 : 400, headers: { "Cache-Control": "no-store" } });
+    }
 
     const refreshed = await findAuthUserByEmail(email);
     if (refreshed) await syncProfileBestEffort(refreshed);
-
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
-  } catch {
-    return NextResponse.json({ error: "VERIFY_FAILED" }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown";
+    console.error(`[auth/verify-email] ${message.slice(0, 300)}`);
+    return NextResponse.json({ error: "VERIFY_FAILED" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
 }

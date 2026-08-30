@@ -1,4 +1,4 @@
--- Voidworks v10 production schema / migration
+-- Voidworks v12 production schema / migration
 -- Run this entire file once in Supabase -> SQL Editor.
 
 create extension if not exists pgcrypto;

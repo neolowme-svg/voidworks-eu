@@ -45,7 +45,7 @@ export function ContactForm() {
     <div className="field-row"><label>{text.contact.name}<input type="text" name="name" minLength={2} maxLength={80} autoComplete="name" required placeholder={text.contact.placeholderName}/></label><label>{text.contact.email}<input type="email" name="email" maxLength={160} autoComplete="email" required placeholder={text.contact.placeholderEmail}/></label></div>
     <label>{text.contact.subject}<CustomSelect name="type" value={type} onChange={setType} options={options} placeholder={text.contact.select}/></label>
     <label>{text.contact.message}<textarea name="message" minLength={10} maxLength={3000} rows={6} required placeholder={text.contact.placeholderMessage} value={prefill} onChange={(event)=>setPrefill(event.target.value)}/></label>
-    <BotChallenge key={challengeKey} onToken={setTurnstileToken} onReady={setChallengeReady}/>
+    <BotChallenge key={challengeKey} action="contact" onToken={setTurnstileToken} onReady={setChallengeReady}/>
     {!challengeReady&&<small className="security-status">{text.auth.securityWaiting}</small>}
     <p className="form-consent">{text.contact.consent} <Link href="/privacy">{text.legal.privacy}</Link> · <Link href="/terms">{text.legal.terms}</Link></p>
     <button type="submit" className="button button-primary" disabled={status.type==="loading"||!challengeReady}>{status.type==="loading"?text.contact.sending:text.contact.send}</button>

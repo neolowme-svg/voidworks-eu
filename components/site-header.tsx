@@ -50,16 +50,17 @@ export function SiteHeader() {
       </Link>
 
       <nav className="desktop-nav" aria-label={text.nav.mainNavigation}>
-        <Link href="/#diensten">{text.nav.services}</Link>
-        <Link href="/#projecten">{text.nav.projects}</Link>
-        <Link href="/#werkwijze">{text.nav.process}</Link>
-        <Link href="/#prijzen">{text.nav.pricing}</Link>
-        <Link href="/#contact">{text.nav.contact}</Link>
+        <Link href="/">{text.nav.homeLink}</Link>
+        <a href="/#diensten">{text.nav.services}</a>
+        <a href="/#projecten">{text.nav.projects}</a>
+        <a href="/#werkwijze">{text.nav.process}</a>
+        <a href="/#prijzen">{text.nav.pricing}</a>
+        <a href="/#contact">{text.nav.contact}</a>
       </nav>
 
       <div className="nav-actions">
         {languagePicker}
-        <button className="utility-button theme-toggle" type="button" aria-label={text.nav.theme} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+        <button className="utility-button theme-toggle" type="button" aria-label={text.nav.theme} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}> 
           <span aria-hidden="true">{theme === "dark" ? "☾" : "☀"}</span><em>{theme === "dark" ? text.nav.dark : text.nav.light}</em>
         </button>
         <a className="discord-button" href={DISCORD} target="_blank" rel="noreferrer">Discord</a>
@@ -74,7 +75,8 @@ export function SiteHeader() {
 
     <div className={`mobile-menu ${open ? "open" : ""}`}>
       <nav className="container mobile-nav">
-        <Link href="/#diensten">{text.nav.services}</Link><Link href="/#projecten">{text.nav.projects}</Link><Link href="/#werkwijze">{text.nav.process}</Link><Link href="/#prijzen">{text.nav.pricing}</Link><Link href="/#contact">{text.nav.contact}</Link>
+        <Link href="/">{text.nav.homeLink}</Link>
+        <a href="/#diensten">{text.nav.services}</a><a href="/#projecten">{text.nav.projects}</a><a href="/#werkwijze">{text.nav.process}</a><a href="/#prijzen">{text.nav.pricing}</a><a href="/#contact">{text.nav.contact}</a>
         <a href={DISCORD} target="_blank" rel="noreferrer">Discord ↗</a><Link href="/login">{text.nav.login}</Link><Link href="/register">{text.nav.register}</Link>
         <div className="mobile-preferences">
           {(Object.keys(localeMeta) as Locale[]).map((key) => <button type="button" key={key} className={key === locale ? "selected" : ""} onClick={() => setLocale(key)}><Image src={localeMeta[key].flag} alt="" width={30} height={20} unoptimized />{localeMeta[key].short}</button>)}

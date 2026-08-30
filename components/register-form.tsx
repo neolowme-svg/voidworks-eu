@@ -39,8 +39,8 @@ export function RegisterForm() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [challengeReady, setChallengeReady] = useState(false);
   const [challengeKey, setChallengeKey] = useState(0);
-  const startedAt = useRef(Date.now());
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
+  const submitLock = useRef(false);
   const strength = useMemo(() => passwordStrength(password), [password]);
   const code = digits.join("");
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
@@ -52,7 +52,6 @@ export function RegisterForm() {
     setTurnstileToken("");
     setChallengeReady(false);
     setChallengeKey((value) => value + 1);
-    startedAt.current = Date.now();
   }
 
   useEffect(() => {
@@ -82,6 +81,7 @@ export function RegisterForm() {
     if (codeValue === "SECURITY_UNAVAILABLE") return text.auth.securityUnavailable;
     if (codeValue === "EMAIL_SEND_FAILED") return text.auth.emailUnavailable;
     if (codeValue === "INVALID_INPUT") return text.auth.invalidInput;
+    if (codeValue === "REGISTER_FAILED") return text.auth.registerFailed;
     return text.auth.serviceError;
   }
 
@@ -97,6 +97,7 @@ export function RegisterForm() {
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
     setStatus("");
     if (!challengeReady) return setStatus(text.auth.securityWaiting);
     const form = new FormData(event.currentTarget);
@@ -104,18 +105,18 @@ export function RegisterForm() {
     const email = String(form.get("email") ?? "").trim().toLowerCase();
     const passwordValue = String(form.get("password") ?? "");
     const confirm = String(form.get("confirm") ?? "");
-    const companyWebsite = String(form.get("companyWebsite") ?? "");
     if (name.length < 2) return setStatus(text.auth.invalidInput);
     if (!strength.valid) return setStatus(`${text.auth.need}: ${labels.filter((_, index) => !checks[index]).join(", ")}.`);
     if (passwordValue !== confirm) return setStatus(text.auth.noMatch);
 
+    submitLock.current = true;
     setBusy(true);
     try {
       const response = await fetch("/api/auth/register", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         credentials:"same-origin",
-        body:JSON.stringify({ name, email, password:passwordValue, companyWebsite, startedAt:startedAt.current, turnstileToken, locale }),
+        body:JSON.stringify({ name, email, password:passwordValue, turnstileToken, locale }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -127,7 +128,7 @@ export function RegisterForm() {
     } catch {
       setStatus(text.auth.serviceError);
       resetChallenge();
-    } finally { setBusy(false); }
+    } finally { submitLock.current = false; setBusy(false); }
   }
 
   function setDigit(index:number, raw:string) {
@@ -230,7 +231,6 @@ export function RegisterForm() {
     <div className="auth-card auth-card-readable">
       <div className="auth-heading"><span>{text.auth.area}</span><h1>{text.auth.registerTitle}</h1><p>{text.auth.registerText}</p></div>
       <form className="auth-form" onSubmit={register}>
-        <input className="honeypot" name="companyWebsite" tabIndex={-1} autoComplete="off" aria-hidden="true" />
         <label>{text.auth.name}<input name="name" type="text" autoComplete="name" minLength={2} maxLength={80} required placeholder={text.auth.namePlaceholder} /></label>
         <label>{text.auth.email}<input name="email" type="email" autoComplete="email" required placeholder={text.contact.placeholderEmail} /></label>
         <label>{text.auth.password}<span className="password-input"><input name="password" type={visible ? "text" : "password"} autoComplete="new-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={text.auth.passwordPlaceholder} /><button type="button" onClick={() => setVisible((value) => !value)}>{visible ? text.auth.hide : text.auth.show}</button></span></label>
@@ -241,7 +241,7 @@ export function RegisterForm() {
           {!strength.valid && password && <p className="strength-missing">{text.auth.need}: {labels.filter((_,index) => !checks[index]).join(", ")}.</p>}
         </div>
         <label>{text.auth.passwordAgain}<span className="password-input"><input name="confirm" type={confirmVisible ? "text" : "password"} autoComplete="new-password" minLength={12} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={text.auth.repeatPlaceholder} /><button type="button" onClick={() => setConfirmVisible((value) => !value)}>{confirmVisible ? text.auth.hide : text.auth.show}</button></span>{confirmPassword && <small className={passwordsMatch ? "match-ok" : "match-bad"}>{passwordsMatch ? `✓ ${text.auth.match}` : `✕ ${text.auth.noMatch}`}</small>}</label>
-        <BotChallenge key={challengeKey} onToken={setTurnstileToken} onReady={setChallengeReady} />
+        <BotChallenge key={challengeKey} action="register" onToken={setTurnstileToken} onReady={setChallengeReady} />
         {!challengeReady && <small className="security-status">{text.auth.securityWaiting}</small>}
         <p className="form-consent">{text.contact.consent} <Link href="/terms">{text.legal.terms}</Link> · <Link href="/privacy">{text.legal.privacy}</Link></p>
         <button className="button button-primary auth-submit" disabled={busy || !challengeReady}>{busy ? text.auth.creating : text.auth.makeAccount}</button>

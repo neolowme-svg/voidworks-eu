@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const email = String(body.email || "").trim().toLowerCase().slice(0, 160);
     const ip = getClientIp(request);
     if (isLikelyBotTrap(body.companyWebsite) || !validFormAge(body.startedAt)) return NextResponse.json({ error: "INVALID_FORM" }, { status: 400 });
-    const turnstile = await verifyTurnstile(String(body.turnstileToken || ""));
+    const turnstile = await verifyTurnstile(String(body.turnstileToken || ""), "login");
     if (!turnstile.ok) return NextResponse.json({ error: turnstile.unavailable ? "SECURITY_UNAVAILABLE" : "BOT_CHECK_FAILED" }, { status: turnstile.unavailable ? 503 : 403 });
     const allowedIp = await consumeRateLimit(`login:ip:${ip}`, 12, 900);
     const allowedEmail = await consumeRateLimit(`login:email:${email}`, 10, 900);

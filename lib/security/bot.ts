@@ -11,23 +11,28 @@ export type TurnstileVerification = {
   unavailable: boolean;
 };
 
-const CONFIG_ERRORS = new Set([
-  "missing-input-secret",
-  "invalid-input-secret",
-  "internal-error",
-]);
+const CONFIG_ERRORS = new Set(["missing-input-secret", "invalid-input-secret", "internal-error"]);
 
-export async function verifyTurnstile(token: string | null | undefined): Promise<TurnstileVerification> {
+function allowedHostnames() {
+  const configured = (process.env.TURNSTILE_HOSTNAMES || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set(["voidworks.eu", "www.voidworks.eu", ...configured]);
+}
+
+export async function verifyTurnstile(
+  token: string | null | undefined,
+  expectedAction?: string,
+): Promise<TurnstileVerification> {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
 
-  // If bot protection is intentionally not configured, don't brick authentication.
+  // Never brick auth when Turnstile is intentionally not configured.
   if (!secret || !siteKey) return { ok: true, configured: false, unavailable: false };
   if (!token || token.length > 2048) return { ok: false, configured: true, unavailable: false };
 
-  const form = new URLSearchParams();
-  form.set("secret", secret);
-  form.set("response", token);
+  const form = new URLSearchParams({ secret, response: token });
 
   try {
     const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
@@ -43,17 +48,19 @@ export async function verifyTurnstile(token: string | null | undefined): Promise
     const result = (await response.json()) as TurnstileResult;
     if (result.success !== true) {
       const errors = result["error-codes"] ?? [];
-      const unavailable = errors.some((code) => CONFIG_ERRORS.has(code));
-      return { ok: false, configured: true, unavailable };
+      return {
+        ok: false,
+        configured: true,
+        unavailable: errors.some((code) => CONFIG_ERRORS.has(code)),
+      };
+    }
+
+    if (expectedAction && result.action && result.action !== expectedAction) {
+      return { ok: false, configured: true, unavailable: false };
     }
 
     const hostname = (result.hostname || "").toLowerCase();
-    if (
-      process.env.NODE_ENV === "production" &&
-      hostname &&
-      hostname !== "voidworks.eu" &&
-      hostname !== "www.voidworks.eu"
-    ) {
+    if (process.env.NODE_ENV === "production" && hostname && !allowedHostnames().has(hostname)) {
       return { ok: false, configured: true, unavailable: false };
     }
 
