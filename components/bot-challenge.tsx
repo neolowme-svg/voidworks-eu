@@ -15,7 +15,7 @@ declare global {
 }
 
 export function BotChallenge({ onToken, onReady }: { onToken: (token: string) => void; onReady?: (ready: boolean) => void }) {
-  const { text } = usePreferences();
+  const { text, locale } = usePreferences();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const root = useRef<HTMLDivElement | null>(null);
   const widget = useRef<string>("");
@@ -31,6 +31,7 @@ export function BotChallenge({ onToken, onReady }: { onToken: (token: string) =>
     widget.current = window.turnstile.render(root.current, {
       sitekey: siteKey,
       theme: "auto",
+      language: locale,
       size: "flexible",
       callback: (token: string) => {
         onToken(token);
@@ -52,6 +53,10 @@ export function BotChallenge({ onToken, onReady }: { onToken: (token: string) =>
   }
 
   useEffect(() => {
+    if (widget.current && window.turnstile) {
+      window.turnstile.remove(widget.current);
+      widget.current = "";
+    }
     renderWidget();
     return () => {
       onToken("");
@@ -61,7 +66,7 @@ export function BotChallenge({ onToken, onReady }: { onToken: (token: string) =>
     };
     // callbacks are intentionally not dependencies; remounting is controlled by the parent key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteKey]);
+  }, [siteKey, locale]);
 
   if (!siteKey) return null;
   return <>

@@ -6,10 +6,10 @@ import { copy, type Locale, type Theme } from "@/lib/i18n";
 export type Consent = "unset" | "essential" | "preferences";
 type Preferences = { locale:Locale; setLocale:(locale:Locale)=>void; theme:Theme; setTheme:(theme:Theme)=>void; consent:Consent; setConsent:(value:Exclude<Consent,"unset">)=>void; text:(typeof copy)[Locale] };
 const Context = createContext<Preferences | null>(null);
-const CONSENT_VERSION = "2";
+const CONSENT_VERSION = "3";
 
-export function PreferencesProvider({ children }: { children:React.ReactNode }) {
-  const [locale,setLocaleState]=useState<Locale>("nl");
+export function PreferencesProvider({ children, initialLocale = "en" }: { children:React.ReactNode; initialLocale?:Locale }) {
+  const [locale,setLocaleState]=useState<Locale>(initialLocale);
   const [theme,setThemeState]=useState<Theme>("dark");
   const [consent,setConsentState]=useState<Consent>("unset");
 

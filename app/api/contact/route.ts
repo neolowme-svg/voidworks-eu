@@ -13,8 +13,8 @@ export async function POST(request: Request) {
     const data = await request.formData();
     const ip = getClientIp(request);
     if (isLikelyBotTrap(data.get("companyWebsite")) || !validFormAge(data.get("startedAt"))) return NextResponse.json({ ok:true }, { status:201 });
-    const turnstile = await verifyTurnstile(clean(data.get("turnstileToken"), 2048), ip);
-    if (!turnstile.ok) return NextResponse.json({ error:"BOT_CHECK_FAILED" }, { status:403 });
+    const turnstile = await verifyTurnstile(clean(data.get("turnstileToken"), 2048));
+    if (!turnstile.ok) return NextResponse.json({ error: turnstile.unavailable ? "SECURITY_UNAVAILABLE" : "BOT_CHECK_FAILED" }, { status: turnstile.unavailable ? 503 : 403 });
     if (!(await consumeRateLimit(`contact:${ip}`, 5, 600))) return NextResponse.json({ error:"RATE_LIMIT" }, { status:429 });
 
     const name = clean(data.get("name"), 80);

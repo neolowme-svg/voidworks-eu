@@ -67,6 +67,8 @@ export function RegisterForm() {
     }
   }, [searchParams, verifyOpen]);
 
+  useEffect(() => { setStatus(""); }, [locale]);
+
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
@@ -77,17 +79,18 @@ export function RegisterForm() {
     if (codeValue === "EMAIL_REGISTERED") return text.auth.emailRegistered;
     if (codeValue === "RATE_LIMIT") return text.auth.rateLimit;
     if (codeValue === "BOT_CHECK_FAILED") return text.auth.botFailed;
+    if (codeValue === "SECURITY_UNAVAILABLE") return text.auth.securityUnavailable;
     if (codeValue === "EMAIL_SEND_FAILED") return text.auth.emailUnavailable;
     if (codeValue === "INVALID_INPUT") return text.auth.invalidInput;
-    return text.auth.registerFailed;
+    return text.auth.serviceError;
   }
 
-  function openVerification(email: string, name: string) {
+  function openVerification(email: string, name: string, emailSent = true) {
     setPendingEmail(email);
     setPendingName(name);
     setDigits(Array(OTP_LENGTH).fill(""));
-    setCooldown(60);
-    setStatus("");
+    setCooldown(emailSent ? 60 : 0);
+    setStatus(emailSent ? "" : text.auth.emailUnavailable);
     setVerifyOpen(true);
     window.setTimeout(() => inputs.current[0]?.focus(), 80);
   }
@@ -120,9 +123,9 @@ export function RegisterForm() {
         resetChallenge();
         return;
       }
-      openVerification(email, name);
+      openVerification(email, name, result.emailSent !== false);
     } catch {
-      setStatus(text.auth.registerFailed);
+      setStatus(text.auth.serviceError);
       resetChallenge();
     } finally { setBusy(false); }
   }

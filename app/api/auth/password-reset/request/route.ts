@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     const locale = body.locale === "en" || body.locale === "de" ? body.locale : "nl";
     const ip = getClientIp(request);
     if (isLikelyBotTrap(body.companyWebsite) || !validFormAge(body.startedAt)) return NextResponse.json({ ok: true });
-    const turnstile = await verifyTurnstile(String(body.turnstileToken || ""), ip);
-    if (!turnstile.ok) return NextResponse.json({ error: "BOT_CHECK_FAILED" }, { status: 403 });
+    const turnstile = await verifyTurnstile(String(body.turnstileToken || ""));
+    if (!turnstile.ok) return NextResponse.json({ error: turnstile.unavailable ? "SECURITY_UNAVAILABLE" : "BOT_CHECK_FAILED" }, { status: turnstile.unavailable ? 503 : 403 });
     if (!(await consumeRateLimit(`reset-request:${ip}:${email}`, 5, 3600))) return NextResponse.json({ error: "RATE_LIMIT" }, { status: 429 });
 
     const user = await findAuthUserByEmail(email);

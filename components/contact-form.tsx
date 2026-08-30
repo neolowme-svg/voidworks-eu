@@ -34,7 +34,7 @@ export function ContactForm() {
     try{
       const response=await fetch("/api/contact",{method:"POST",body:data,credentials:"same-origin"});const result=await response.json().catch(()=>({}));
       resetChallenge();
-      if(!response.ok)throw new Error(result.error==="RATE_LIMIT"?text.auth.rateLimit:result.error==="BOT_CHECK_FAILED"?text.auth.botFailed:text.contact.error);
+      if(!response.ok)throw new Error(result.error==="RATE_LIMIT"?text.auth.rateLimit:result.error==="BOT_CHECK_FAILED"?text.auth.botFailed:result.error==="SECURITY_UNAVAILABLE"?text.auth.securityUnavailable:text.contact.error);
       form.reset();setPrefill("");setType(text.contact.options[0]);setStatus({type:"success",text:text.contact.success});
     }catch(error){resetChallenge();setStatus({type:"error",text:error instanceof Error?error.message:text.contact.error});}
   }

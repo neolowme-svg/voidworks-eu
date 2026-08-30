@@ -4,9 +4,7 @@ import { revokeCurrentAppSession } from "@/lib/security/session";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
-  const { data:{ user } } = await supabase.auth.getUser();
-  if (user) await revokeCurrentAppSession(user.id);
-  else await revokeCurrentAppSession();
+  await revokeCurrentAppSession();
   await supabase.auth.signOut({ scope:"local" });
   const url = new URL("/login", request.url);
   const reason = request.nextUrl.searchParams.get("reason");

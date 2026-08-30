@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findAuthUserByEmail } from "@/lib/security/users";
-import { sixDigitCode, hashSecret } from "@/lib/security/crypto";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIp, isLikelyBotTrap, rejectCrossOrigin, validFormAge } from "@/lib/security/request";
 import { verifyTurnstile } from "@/lib/security/bot";
 import { sendVerificationCode } from "@/lib/email/resend";
-import { VERIFY_CODE_MINUTES } from "@/lib/security/config";
+import { issueVerificationCode, syncProfileBestEffort } from "@/lib/security/email-verification";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const validPassword = (value: string) => value.length >= 12 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9\s]/.test(value);
@@ -26,12 +25,19 @@ export async function POST(request: Request) {
     if (isLikelyBotTrap(body.companyWebsite) || !validFormAge(body.startedAt)) {
       return NextResponse.json({ error: "INVALID_FORM" }, { status: 400 });
     }
-    const turnstile = await verifyTurnstile(String(body.turnstileToken || ""), ip);
-    if (!turnstile.ok) return NextResponse.json({ error: "BOT_CHECK_FAILED" }, { status: 403 });
 
-    if (!(await consumeRateLimit(`register:ip:${ip}`, 5, 3600)) || !(await consumeRateLimit(`register:email:${email}`, 3, 3600))) {
+    const turnstile = await verifyTurnstile(String(body.turnstileToken || ""));
+    if (!turnstile.ok) {
+      return NextResponse.json(
+        { error: turnstile.unavailable ? "SECURITY_UNAVAILABLE" : "BOT_CHECK_FAILED" },
+        { status: turnstile.unavailable ? 503 : 403 },
+      );
+    }
+
+    if (!(await consumeRateLimit(`register:ip:${ip}`, 7, 3600)) || !(await consumeRateLimit(`register:email:${email}`, 5, 3600))) {
       return NextResponse.json({ error: "RATE_LIMIT" }, { status: 429 });
     }
+
     if (name.length < 2 || !emailPattern.test(email) || !validPassword(password)) {
       return NextResponse.json({ error: "INVALID_INPUT" }, { status: 400 });
     }
@@ -39,57 +45,53 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const existingUser = await findAuthUserByEmail(email);
     if (existingUser) {
-      const { data: existingProfile, error: existingProfileError } = await admin.from("profiles").select("id").eq("id", existingUser.id).maybeSingle();
-      if (existingProfileError) return NextResponse.json({ error:"REGISTER_FAILED" }, { status:500 });
-      if (existingProfile) return NextResponse.json({ error:"EMAIL_REGISTERED" }, { status:409 });
-      // Orphaned Auth user: the app account was deleted, so remove the stale auth record before re-registration.
-      const { error: orphanDeleteError } = await admin.auth.admin.deleteUser(existingUser.id);
-      if (orphanDeleteError) return NextResponse.json({ error:"REGISTER_FAILED" }, { status:500 });
+      if (existingUser.email_confirmed_at || existingUser.user_metadata?.voidworks_verification_required === false) {
+        return NextResponse.json({ error: "EMAIL_REGISTERED" }, { status: 409 });
+      }
+
+      // Recover an earlier unfinished registration instead of creating a duplicate account.
+      // The new form password becomes the password for that unfinished account.
+      const { data: recoveredData, error: recoveryError } = await admin.auth.admin.updateUserById(existingUser.id, {
+        password,
+        user_metadata: { ...(existingUser.user_metadata || {}), full_name: name, voidworks_verification_required: true },
+      });
+      if (recoveryError || !recoveredData.user) return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500 });
+      const { code } = await issueVerificationCode(recoveredData.user);
+      let emailSent = true;
+      try {
+        await sendVerificationCode(email, name, code, locale);
+      } catch {
+        emailSent = false;
+      }
+      return NextResponse.json({ ok: true, verificationRequired: true, emailSent, recovered: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
     }
+
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: false,
       user_metadata: { full_name: name, voidworks_verification_required: true },
     });
+
     if (error || !data.user) {
-      if (error?.message.toLowerCase().includes("already")) return NextResponse.json({ error: "EMAIL_REGISTERED" }, { status: 409 });
-      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 400, headers: { "Cache-Control":"no-store" } });
+      if (error?.message.toLowerCase().includes("already")) {
+        return NextResponse.json({ error: "EMAIL_REGISTERED" }, { status: 409 });
+      }
+      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
 
-    const code = sixDigitCode();
-    const codeHash = hashSecret(code, "verify-email");
-    const expiresAt = new Date(Date.now() + VERIFY_CODE_MINUTES * 60 * 1000).toISOString();
+    const { code } = await issueVerificationCode(data.user);
+    await syncProfileBestEffort(data.user, name);
 
-    const { error: profileError } = await admin.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name: name,
-      email_verified_at: null,
-      updated_at: new Date().toISOString(),
-    });
-    const { error: codeError } = await admin.from("email_verification_codes").upsert({
-      user_id: data.user.id,
-      code_hash: codeHash,
-      expires_at: expiresAt,
-      attempts: 0,
-      consumed_at: null,
-      last_sent_at: new Date().toISOString(),
-    });
-    if (profileError || codeError) {
-      await admin.auth.admin.deleteUser(data.user.id);
-      return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500, headers: { "Cache-Control":"no-store" } });
-    }
-
+    let emailSent = true;
     try {
       await sendVerificationCode(email, name, code, locale);
     } catch {
-      await admin.auth.admin.deleteUser(data.user.id);
-      return NextResponse.json({ error: "EMAIL_SEND_FAILED" }, { status: 503 });
+      emailSent = false;
     }
 
-    return NextResponse.json({ ok: true, verificationRequired: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ ok: true, verificationRequired: true, emailSent }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch {
-    return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500, headers: { "Cache-Control":"no-store" } });
+    return NextResponse.json({ error: "REGISTER_FAILED" }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }
