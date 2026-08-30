@@ -1,23 +1,36 @@
 # Voidworks
 
-Production-ready statische website voor **voidworks.eu** en **www.voidworks.eu**.
+Statische website voor **voidworks.eu** en **www.voidworks.eu**.
 
-## Projectstructuur
+## v2 wijzigingen
 
-- `index.html` — website
-- `styles.css` — styling
-- `script.js` — mobiele navigatie, animaties, FAQ en contactformulier
-- `assets/voidworks-wordmark.png` — logo met tekst
-- `assets/voidworks-mark.png` — los beeldmerk
-- `assets/favicon.png` — favicon
-- `assets/projects/` — projectlogo's
+- Neon/glow/orbit-effecten verwijderd.
+- Rustigere donkerblauwe bureau/tech-stijl.
+- Solid paarse CTA's in plaats van neon gradients.
+- Hero, diensten, projecten, proces, FAQ en contact opnieuw ontworpen.
+- Nieuwe `/login.html`.
+- Login + registratie tabs.
+- Wachtwoord tonen/verbergen.
+- Live password-strength indicator.
+- Checks voor lengte, hoofdletter, kleine letter, cijfer, speciaal teken en spaties.
+- Wachtwoordbevestiging en frontend form-validatie.
 
-## Domeinen
+## Belangrijk over login
 
-De website gebruikt `https://voidworks.eu/` als canonical domein. Wanneer `www.voidworks.eu` ook aan hetzelfde Vercel-project is gekoppeld, stuurt de frontend `www` door naar het hoofddomein.
+De loginpagina is **frontend-only**. Er worden geen wachtwoorden verstuurd of opgeslagen. Voor een echte klantomgeving moet er een backend/authentication-provider aan worden gekoppeld.
 
-Voor een volledige server-side redirect kun je dit ook in Vercel Dashboard instellen bij **Project → Settings → Domains**.
+Gebruik nooit localStorage als echte login-oplossing en zet geen geheime API keys in frontend JavaScript.
 
-## Contactmail
+## Structuur
 
-Het contactformulier opent standaard `info@voidworks.eu`. Pas dit in `script.js` aan als je een ander e-mailadres wilt gebruiken.
+- `index.html`
+- `login.html`
+- `styles.css`
+- `script.js`
+- `login.js`
+- `assets/`
+- `vercel.json`
+
+## Contact
+
+Het contactformulier opent `info@voidworks.eu` in het e-mailprogramma van de bezoeker.
