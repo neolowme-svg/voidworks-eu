@@ -1,6 +1,19 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePreferences } from "@/components/preferences-provider";
 
 export function SiteFooter() {
-  return <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Image src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150}/><p>Websites en webapplicaties op maat. Donker, snel en duidelijk.</p></div><div className="footer-column"><strong>Voidworks</strong><Link href="/#diensten">Diensten</Link><Link href="/#projecten">Projecten</Link><Link href="/#werkwijze">Werkwijze</Link><Link href="/#prijzen">Prijzen</Link><Link href="/#contact">Contact</Link></div><div className="footer-column"><strong>Account</strong><Link href="/login">Inloggen</Link><Link href="/register">Registreren</Link><Link href="/dashboard">Dashboard</Link></div><div className="footer-column"><strong>Contact</strong><a href="mailto:info@voidworks.eu">info@voidworks.eu</a><a href="https://fentexrp.nl/" target="_blank" rel="noreferrer">Fentex ↗</a><a href="https://www.flexwrap.com/" target="_blank" rel="noreferrer">Flexwrap ↗</a></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Voidworks</span><span>voidworks.eu</span></div></footer>;
+  const { text } = usePreferences();
+  return <footer className="site-footer"><div className="container footer-grid">
+    <div className="footer-brand">
+      <Image className="brand-dark" src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150} unoptimized />
+      <Image className="brand-light" src="/assets/voidworks-wordmark-light.png" alt="Voidworks" width={460} height={150} unoptimized />
+      <p>{text.footer.text}</p>
+    </div>
+    <div className="footer-column"><strong>Voidworks</strong><Link href="/#diensten">{text.nav.services}</Link><Link href="/#projecten">{text.nav.projects}</Link><Link href="/#werkwijze">{text.nav.process}</Link><Link href="/#prijzen">{text.nav.pricing}</Link><Link href="/#contact">{text.nav.contact}</Link></div>
+    <div className="footer-column"><strong>{text.footer.account}</strong><Link href="/login">{text.nav.login}</Link><Link href="/register">{text.nav.register}</Link><Link href="/dashboard">{text.nav.dashboard}</Link></div>
+    <div className="footer-column"><strong>{text.footer.contact}</strong><a href="mailto:info@voidworks.eu">info@voidworks.eu</a><a href="https://discord.gg/SBtnUvrzg6" target="_blank" rel="noreferrer">Discord ↗</a><a href="https://fentexrp.nl/" target="_blank" rel="noreferrer">Fentex ↗</a><a href="https://www.flexwrap.com/" target="_blank" rel="noreferrer">Flexwrap ↗</a></div>
+  </div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Voidworks</span><span>voidworks.eu</span></div></footer>;
 }

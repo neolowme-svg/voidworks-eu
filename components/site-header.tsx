@@ -3,63 +3,84 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { localeMeta, type Locale } from "@/lib/i18n";
+import { usePreferences } from "@/components/preferences-provider";
+
+const DISCORD = "https://discord.gg/SBtnUvrzg6";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { locale, setLocale, theme, setTheme, text } = usePreferences();
   const [open, setOpen] = useState(false);
-  useEffect(() => setOpen(false), [pathname]);
+  const [localeOpen, setLocaleOpen] = useState(false);
+  const localeRoot = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => { setOpen(false); setLocaleOpen(false); }, [pathname]);
+  useEffect(() => {
+    function close(event: MouseEvent) {
+      if (!localeRoot.current?.contains(event.target as Node)) setLocaleOpen(false);
+    }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
 
   const onDashboard = pathname.startsWith("/dashboard");
   const onLogin = pathname === "/login";
   const onRegister = pathname === "/register";
 
-  return (
-    <header className="site-header">
-      <div className="container nav-shell">
-        <Link href="/" className="brand" aria-label="Voidworks home">
-          <Image src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150} priority />
-        </Link>
+  const languagePicker = <div className="locale-picker" ref={localeRoot}>
+    <button type="button" className="utility-button locale-trigger" aria-expanded={localeOpen} aria-label={text.nav.language} onClick={() => setLocaleOpen((value) => !value)}>
+      <Image src={localeMeta[locale].flag} alt="" width={30} height={20} unoptimized />
+      <span>{localeMeta[locale].short}</span><i />
+    </button>
+    {localeOpen && <div className="locale-menu" role="menu">
+      {(Object.keys(localeMeta) as Locale[]).map((key) => <button type="button" key={key} className={key === locale ? "selected" : ""} onClick={() => { setLocale(key); setLocaleOpen(false); }}>
+        <Image src={localeMeta[key].flag} alt="" width={36} height={24} unoptimized />
+        <span>{localeMeta[key].label}</span>{key === locale && <b>✓</b>}
+      </button>)}
+    </div>}
+  </div>;
 
-        <nav className="desktop-nav" aria-label="Hoofdnavigatie">
-          <Link href="/#diensten">Diensten</Link>
-          <Link href="/#projecten">Projecten</Link>
-          <Link href="/#werkwijze">Werkwijze</Link>
-          <Link href="/#prijzen">Prijzen</Link>
-          <Link href="/#contact">Contact</Link>
-        </nav>
+  return <header className="site-header">
+    <div className="container nav-shell">
+      <Link href="/" className="brand" aria-label="Voidworks home">
+        <Image className="brand-dark" src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150} priority unoptimized />
+        <Image className="brand-light" src="/assets/voidworks-wordmark-light.png" alt="Voidworks" width={460} height={150} priority unoptimized />
+      </Link>
 
-        <div className="nav-actions">
-          {onDashboard ? (
-            <Link href="/dashboard" className="nav-login">Dashboard</Link>
-          ) : onLogin ? (
-            <Link href="/register" className="button button-primary nav-cta">Registreren</Link>
-          ) : onRegister ? (
-            <Link href="/login" className="button button-primary nav-cta">Inloggen</Link>
-          ) : (
-            <>
-              <Link href="/login" className="nav-login">Inloggen</Link>
-              <Link href="/#contact" className="button button-primary nav-cta">Project starten</Link>
-            </>
-          )}
-        </div>
+      <nav className="desktop-nav" aria-label="Main navigation">
+        <Link href="/#diensten">{text.nav.services}</Link>
+        <Link href="/#projecten">{text.nav.projects}</Link>
+        <Link href="/#werkwijze">{text.nav.process}</Link>
+        <Link href="/#prijzen">{text.nav.pricing}</Link>
+        <Link href="/#contact">{text.nav.contact}</Link>
+      </nav>
 
-        <button className={`menu-button ${open ? "active" : ""}`} type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-          <span /><span /><span />
+      <div className="nav-actions">
+        {languagePicker}
+        <button className="utility-button theme-toggle" type="button" aria-label={text.nav.theme} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          <span aria-hidden="true">{theme === "dark" ? "☾" : "☀"}</span><em>{theme === "dark" ? text.nav.dark : text.nav.light}</em>
         </button>
+        <a className="discord-button" href={DISCORD} target="_blank" rel="noreferrer">Discord</a>
+        {onDashboard ? <Link href="/dashboard" className="button button-primary nav-cta">{text.nav.dashboard}</Link>
+          : onLogin ? <Link href="/register" className="button button-primary nav-cta">{text.nav.register}</Link>
+          : onRegister ? <Link href="/login" className="button button-primary nav-cta">{text.nav.login}</Link>
+          : <Link href="/login" className="button button-primary nav-cta">{text.nav.login}</Link>}
       </div>
 
-      <div className={`mobile-menu ${open ? "open" : ""}`}>
-        <nav className="container mobile-nav">
-          <Link href="/#diensten">Diensten</Link>
-          <Link href="/#projecten">Projecten</Link>
-          <Link href="/#werkwijze">Werkwijze</Link>
-          <Link href="/#prijzen">Prijzen</Link>
-          <Link href="/#contact">Contact</Link>
-          <Link href="/login">Inloggen</Link>
-          <Link href="/register">Registreren</Link>
-        </nav>
-      </div>
-    </header>
-  );
+      <button className={`menu-button ${open ? "active" : ""}`} type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span /><span /><span /></button>
+    </div>
+
+    <div className={`mobile-menu ${open ? "open" : ""}`}>
+      <nav className="container mobile-nav">
+        <Link href="/#diensten">{text.nav.services}</Link><Link href="/#projecten">{text.nav.projects}</Link><Link href="/#werkwijze">{text.nav.process}</Link><Link href="/#prijzen">{text.nav.pricing}</Link><Link href="/#contact">{text.nav.contact}</Link>
+        <a href={DISCORD} target="_blank" rel="noreferrer">Discord ↗</a><Link href="/login">{text.nav.login}</Link><Link href="/register">{text.nav.register}</Link>
+        <div className="mobile-preferences">
+          {(Object.keys(localeMeta) as Locale[]).map((key) => <button type="button" key={key} className={key === locale ? "selected" : ""} onClick={() => setLocale(key)}><Image src={localeMeta[key].flag} alt="" width={30} height={20} unoptimized />{localeMeta[key].short}</button>)}
+          <button type="button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☾ " + text.nav.dark : "☀ " + text.nav.light}</button>
+        </div>
+      </nav>
+    </div>
+  </header>;
 }
