@@ -45,4 +45,4 @@ Supabase -> Authentication -> URL Configuration:
 5. `Failed`/`Bounced` = open de log en fix de fout die Resend meldt.
 6. Gebruik in de template `{{ .Token }}` en niet alleen `{{ .ConfirmationURL }}`.
 
-De frontend opent na `Account maken` automatisch de verificatie-popup en controleert de 6-cijferige OTP met Supabase `verifyOtp`.
+De frontend opent na `Account maken` automatisch de verificatie-popup en controleert de 8-cijferige OTP met Supabase `verifyOtp`.

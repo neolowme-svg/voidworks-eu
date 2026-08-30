@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ContactForm } from "@/components/contact-form";
+import { PricingConfigurator } from "@/components/pricing-configurator";
 
 const services = [
   ["Websites", "Snelle websites op maat met een sterke visuele stijl en een duidelijke focus op conversie."],
@@ -88,6 +89,18 @@ export default function HomePage() {
               <article key={title} data-reveal><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></article>
             ))}
           </div>
+        </div>
+      </section>
+
+
+      <section className="section section-border pricing-section" id="prijzen">
+        <div className="container">
+          <div className="section-kicker" data-reveal><span>Prijzen</span></div>
+          <div className="section-heading compact-heading" data-reveal>
+            <div><h2>Kies wat je nodig hebt.</h2></div>
+            <p>Start met een pakket en voeg hosting, onderhoud, support, admin panels of API-koppelingen toe.</p>
+          </div>
+          <PricingConfigurator />
         </div>
       </section>
 

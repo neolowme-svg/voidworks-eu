@@ -12,22 +12,49 @@ export function LoginForm() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const reasonText = searchParams.get("reason") === "account-removed" ? "Je sessie is beëindigd omdat dit account niet meer bestaat." : "";
 
   async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setStatus("");
+    event.preventDefault();
+    setBusy(true);
+    setStatus("");
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "").trim().toLowerCase();
     const password = String(form.get("password") ?? "");
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    // Verwijder altijd eerst een oude lokale sessie. Zo kan een verwijderd account
+    // niet blijven hangen door oude browsercookies/local storage.
+    await supabase.auth.signOut({ scope: "local" });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error || !data.user) {
+      setBusy(false);
+      return setStatus("Inloggen lukt niet. Controleer je gegevens en of je e-mail is bevestigd.");
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut({ scope: "local" });
+      setBusy(false);
+      return setStatus("Dit account bestaat niet meer of is gedeactiveerd.");
+    }
+
     setBusy(false);
-    if (error) return setStatus("Inloggen lukt niet. Controleer je gegevens en of je e-mail is bevestigd.");
     const next = searchParams.get("next");
-    router.push(next?.startsWith("/") ? next : "/dashboard"); router.refresh();
+    router.replace(next?.startsWith("/") ? next : "/dashboard");
+    router.refresh();
   }
 
   async function reset(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setStatus("");
+    event.preventDefault();
+    setBusy(true);
+    setStatus("");
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "").trim().toLowerCase();
     const supabase = createClient();
@@ -53,7 +80,7 @@ export function LoginForm() {
           <button className="button button-primary auth-submit" disabled={busy}>{busy ? "Inloggen..." : "Inloggen"}</button>
         </form>
       )}
-      <p className={`auth-status ${status ? "show" : ""}`} aria-live="polite">{status}</p>
+      <p className={`auth-status ${status || reasonText ? "show" : ""}`} aria-live="polite">{status || reasonText}</p>
       {!forgot && <p className="auth-switch">Nog geen account? <Link href="/register">Account maken</Link></p>}
     </div>
   );

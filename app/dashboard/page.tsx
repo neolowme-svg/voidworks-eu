@@ -15,9 +15,10 @@ export default async function DashboardPage() {
     supabase.from("profiles").select("full_name,email").eq("id", user.id).maybeSingle(),
     supabase.from("client_projects").select("id,name,status,description,live_url,updated_at").order("updated_at", { ascending:false }),
   ]);
+  if (!profile) redirect("/auth/signout");
   const list = (projects ?? []) as ClientProject[];
-  const name = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "daar";
-  const email = profile?.email || user.email || "—";
+  const name = profile.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "daar";
+  const email = profile.email || user.email || "—";
 
   return <main className="page dashboard-page"><section className="dashboard-section"><div className="container dashboard-shell">
     <div className="dashboard-top"><div><span className="eyebrow">Dashboard</span><h1>Welkom terug, {name}.</h1><p>Hier vind je je projecten, status en accountgegevens.</p></div><SignOutButton /></div>

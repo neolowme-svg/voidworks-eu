@@ -10,8 +10,9 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [pathname]);
 
-  const authPage = pathname === "/login" || pathname === "/register";
   const onDashboard = pathname.startsWith("/dashboard");
+  const onLogin = pathname === "/login";
+  const onRegister = pathname === "/register";
 
   return (
     <header className="site-header">
@@ -24,24 +25,22 @@ export function SiteHeader() {
           <Link href="/#diensten">Diensten</Link>
           <Link href="/#projecten">Projecten</Link>
           <Link href="/#werkwijze">Werkwijze</Link>
+          <Link href="/#prijzen">Prijzen</Link>
           <Link href="/#contact">Contact</Link>
         </nav>
 
         <div className="nav-actions">
           {onDashboard ? (
             <Link href="/dashboard" className="nav-login">Dashboard</Link>
-          ) : pathname === "/register" ? (
-            <Link href="/login" className="nav-login">Inloggen</Link>
+          ) : onLogin ? (
+            <Link href="/register" className="button button-primary nav-cta">Registreren</Link>
+          ) : onRegister ? (
+            <Link href="/login" className="button button-primary nav-cta">Inloggen</Link>
           ) : (
-            <Link href="/login" className="nav-login">Inloggen</Link>
-          )}
-
-          {authPage ? (
-            <Link href={pathname === "/register" ? "/login" : "/register"} className="button button-primary nav-cta">
-              {pathname === "/register" ? "Inloggen" : "Registreren"}
-            </Link>
-          ) : (
-            <Link href="/#contact" className="button button-primary nav-cta">Project starten</Link>
+            <>
+              <Link href="/login" className="nav-login">Inloggen</Link>
+              <Link href="/#contact" className="button button-primary nav-cta">Project starten</Link>
+            </>
           )}
         </div>
 
@@ -55,6 +54,7 @@ export function SiteHeader() {
           <Link href="/#diensten">Diensten</Link>
           <Link href="/#projecten">Projecten</Link>
           <Link href="/#werkwijze">Werkwijze</Link>
+          <Link href="/#prijzen">Prijzen</Link>
           <Link href="/#contact">Contact</Link>
           <Link href="/login">Inloggen</Link>
           <Link href="/register">Registreren</Link>

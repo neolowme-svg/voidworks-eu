@@ -1,38 +1,39 @@
-# Voidworks v6
+# Voidworks production v7
 
-Complete productieversie van voidworks.eu.
+Complete Next.js + Supabase production build.
 
-## In deze ZIP
-- Extra donkere Voidworks UI, geïnspireerd door de compacte zwart/paars uitstraling uit de aangeleverde Voidbot-referentie.
-- Homepage, projecten, diensten, werkwijze, contact en footer.
-- Losse `/login` pagina.
-- Losse `/register` pagina.
-- Registratie opent direct een modal met 6 losse vakken voor de e-mailcode.
-- OTP plakken werkt ook.
-- Nieuwe code opnieuw versturen vanuit de modal.
-- Beveiligd `/dashboard` via server-side Supabase sessiecontrole.
-- Wachtwoord reset.
-- Supabase database schema.
-- Voidworks HTML e-mailtemplate met `{{ .Token }}`, logo en no-reply tekst.
-- Vercel Next.js configuratie.
+## In v7
+- Donker Voidworks-design behouden
+- `/login` en `/register`
+- Registratie opent direct een 8-cijferige OTP-verificatiemodal
+- OTP ondersteunt plakken, losse vakjes en opnieuw versturen
+- Uitgebreide wachtwoordsterkte met kleurstatus en ontbrekende eisen
+- Verwijderde/deactiveerde profielen kunnen niet blijven inloggen via oude sessies
+- Dubbele login-knop op auth-pagina's opgelost
+- Grotere stapnummers in Werkwijze
+- Nieuwe interactieve Prijzen-sectie
+- Pakketten: Landing page, Volledige website, Website + admin panel, Webplatform + API
+- Extra opties: hosting, onderhoud, VIP support, extra admin panel, API-koppeling, CMS, SEO en priority delivery
+- Prijskeuze wordt automatisch in het contactformulier gezet
+- Voidworks e-mailtemplate aangepast voor 8-cijferige OTP
 
-## Installeren over je bestaande repo
-Pak de ZIP uit en kopieer alles over:
-
-`C:\Users\neolo\Documents\dev\voidworks\voidworks-full`
-
-Laat je bestaande `.git`, `.vercel` en `.env.local` staan.
-
-Daarna:
+## Installeren over bestaand project
+Pak alle bestanden uit over de root van je huidige Voidworks-project.
 
 ```powershell
 npm install
 npm run build
 git add .
-git commit -m "Voidworks v6 dark redesign and OTP verification"
+git commit -m "Voidworks v7 complete fixes and pricing"
 git push origin main
 $vercel = "$env:APPDATA\npm\vercel.cmd"
 & $vercel deploy --prod
 ```
 
-Lees `supabase/EMAIL-SETUP.md` als de verificatiecode niet aankomt.
+## Supabase e-mail
+Gebruik `supabase/email-confirmation.html` als **Authentication -> Email Templates -> Confirm signup** template.
+De template gebruikt `{{ .Token }}`.
+
+## Account echt verwijderen
+Voor volledige verwijdering: **Supabase -> Authentication -> Users -> Delete user**.
+V7 blokkeert daarnaast ook login als alleen het gekoppelde `public.profiles` record ontbreekt.
