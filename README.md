@@ -1,36 +1,111 @@
-# Voidworks
+# Voidworks — production v3
 
-Statische website voor **voidworks.eu** en **www.voidworks.eu**.
+Deze versie is omgebouwd van statische HTML naar **Next.js 16 + Supabase Auth**.
 
-## v2 wijzigingen
+## Wat zit erin
 
-- Neon/glow/orbit-effecten verwijderd.
-- Rustigere donkerblauwe bureau/tech-stijl.
-- Solid paarse CTA's in plaats van neon gradients.
-- Hero, diensten, projecten, proces, FAQ en contact opnieuw ontworpen.
-- Nieuwe `/login.html`.
-- Login + registratie tabs.
-- Wachtwoord tonen/verbergen.
-- Live password-strength indicator.
-- Checks voor lengte, hoofdletter, kleine letter, cijfer, speciaal teken en spaties.
-- Wachtwoordbevestiging en frontend form-validatie.
+- Rustige dark-navy Voidworks stijl zonder neon/glow.
+- Afgeronde cards, screenshots, formulieren en footer.
+- Flexwrap- en Fentex-homepage screenshots in het portfolio.
+- Animaties bij scroll, hover, knoppen en routewissels.
+- Zelfde navbar + footer op home, login, reset en dashboard.
+- Supabase login.
+- Supabase registratie met e-mailbevestiging.
+- Wachtwoordsterkte-indicator.
+- Wachtwoord vergeten + reset flow.
+- Beveiligde `/dashboard`.
+- `profiles`, `client_projects` en `contact_requests` tabellen.
+- Row Level Security voor klantgegevens.
+- Contactformulier schrijft server-side naar Supabase.
+- Security headers.
+- Geen service-role key in client code.
 
-## Belangrijk over login
+## Supabase project
 
-De loginpagina is **frontend-only**. Er worden geen wachtwoorden verstuurd of opgeslagen. Voor een echte klantomgeving moet er een backend/authentication-provider aan worden gekoppeld.
+Project ID: `jiocyearbxybzalnmxcv`
 
-Gebruik nooit localStorage als echte login-oplossing en zet geen geheime API keys in frontend JavaScript.
+De Vercel Supabase integration levert al environment variables. De code ondersteunt de Vercel-namen:
 
-## Structuur
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY` of `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` of `SUPABASE_SECRET_KEY`
 
-- `index.html`
-- `login.html`
-- `styles.css`
-- `script.js`
-- `login.js`
-- `assets/`
-- `vercel.json`
+De publishable key wordt tijdens de Next.js build veilig als public browser key beschikbaar gemaakt. De service-role/secret key blijft alleen server-side.
 
-## Contact
+## 1. Database schema uitvoeren
 
-Het contactformulier opent `info@voidworks.eu` in het e-mailprogramma van de bezoeker.
+Open:
+
+Supabase -> SQL Editor -> New query
+
+Plak de volledige inhoud van:
+
+`supabase/schema.sql`
+
+en voer hem één keer uit.
+
+## 2. Auth URL's instellen in Supabase
+
+Ga naar:
+
+Authentication -> URL Configuration
+
+Zet:
+
+Site URL:
+`https://voidworks.eu`
+
+Redirect URLs:
+`https://voidworks.eu/auth/callback`
+`https://www.voidworks.eu/auth/callback`
+`http://localhost:3000/auth/callback`
+
+## 3. Lokaal env ophalen
+
+Omdat het Vercel-project al gekoppeld is:
+
+```powershell
+cd "C:\Users\neolo\Documents\dev\voidworks\voidworks-full"
+$vercel = "$env:APPDATA\npm\vercel.cmd"
+& $vercel env pull .env.local
+```
+
+## 4. Installeren
+
+```powershell
+npm install
+npm run typecheck
+npm run build
+```
+
+## 5. Deployen
+
+```powershell
+git add .
+git commit -m "Upgrade Voidworks to Next.js and Supabase"
+git push origin main
+
+$vercel = "$env:APPDATA\npm\vercel.cmd"
+& $vercel deploy --prod
+```
+
+## Clientproject aan een account koppelen
+
+Na registratie staat de user in Supabase onder Authentication -> Users.
+
+Gebruik daarna SQL, waarbij je de UUID van de user invult:
+
+```sql
+insert into public.client_projects
+  (client_id, name, status, description, live_url)
+values
+  (
+    'USER_UUID_HIER',
+    'Voorbeeldproject',
+    'In ontwikkeling',
+    'Homepage en klantomgeving worden gebouwd.',
+    null
+  );
+```
+
+Door RLS ziet iedere ingelogde klant alleen projecten met zijn eigen `client_id`.
