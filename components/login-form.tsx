@@ -1,8 +1,61 @@
 "use client";
+
 import Link from "next/link";
 import {FormEvent,useEffect,useRef,useState} from "react";
 import {useRouter,useSearchParams} from "next/navigation";
 import {usePreferences} from "@/components/preferences-provider";
 import {BotChallenge} from "@/components/bot-challenge";
 
-export function LoginForm(){const router=useRouter();const searchParams=useSearchParams();const{text,locale}=usePreferences();const[visible,setVisible]=useState(false);const[busy,setBusy]=useState(false);const[status,setStatus]=useState("");const[token,setToken]=useState("");const[ready,setReady]=useState(false);const[key,setKey]=useState(0);const lock=useRef(false);const reason=searchParams.get("reason");const reasonText=reason==="session-expired"?text.auth.sessionExpired:reason==="password-changed"?text.auth.resetSaved:"";useEffect(()=>setStatus(""),[locale]);function resetChallenge(){setToken("");setReady(false);setKey(v=>v+1)}function message(code:string){if(code==="INVALID_CREDENTIALS")return text.auth.loginFailed;if(code==="EMAIL_NOT_VERIFIED")return text.auth.verifyFirst;if(code==="RATE_LIMIT")return text.auth.rateLimit;if(code==="BOT_CHECK_FAILED")return text.auth.botFailed;if(code==="SECURITY_UNAVAILABLE")return text.auth.securityUnavailable;return text.auth.serviceError}async function login(e:FormEvent<HTMLFormElement>){e.preventDefault();if(lock.current)return;setStatus("");if(!ready){setStatus(text.auth.securityWaiting);return}const data=new FormData(e.currentTarget);const email=String(data.get("email")||"").trim().toLowerCase();const password=String(data.get("password")||"");lock.current=true;setBusy(true);try{const r=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email,password,turnstileToken:token})});const x=await r.json().catch(()=>({}));resetChallenge();if(!r.ok){if(x.error==="EMAIL_NOT_VERIFIED"){await fetch("/api/auth/resend-verification",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email,locale})}).catch(()=>null);router.push(`/register?verify=${encodeURIComponent(email)}`);return}setStatus(message(String(x.error||"")));return}const next=searchParams.get("next");router.replace(next?.startsWith("/")&&!next.startsWith("//")?next:"/dashboard");router.refresh()}catch{resetChallenge();setStatus(text.auth.serviceError)}finally{lock.current=false;setBusy(false)}}return <div className="auth-card auth-card-readable"><div className="auth-heading"><span>{text.auth.area}</span><h1>{text.auth.loginTitle}</h1><p>{text.auth.loginText}</p></div><form className="auth-form" onSubmit={login}><label>{text.auth.email}<input name="email" type="email" autoComplete="email" required placeholder={text.contact.placeholderEmail}/></label><label>{text.auth.password}<span className="password-input"><input name="password" type={visible?"text":"password"} autoComplete="current-password" required placeholder={text.auth.password}/><button type="button" onClick={()=>setVisible(v=>!v)}>{visible?text.auth.hide:text.auth.show}</button></span></label><Link className="text-button forgot-link" href="/forgot-password">{text.auth.forgot}</Link><BotChallenge key={key} action="login" onToken={setToken} onReady={setReady}/>{!ready&&<small className="security-status">{text.auth.securityWaiting}</small>}<button className="button button-primary auth-submit" disabled={busy||!ready}>{busy?text.auth.loggingIn:text.auth.login}</button></form><p className={`auth-status ${status||reasonText?"show":""}`} aria-live="polite">{status||reasonText}</p><p className="auth-switch">{text.auth.noAccount} <Link href="/register">{text.auth.makeAccount}</Link></p></div>}
+export function LoginForm(){
+  const router=useRouter();
+  const searchParams=useSearchParams();
+  const{text,locale}=usePreferences();
+  const[visible,setVisible]=useState(false);
+  const[busy,setBusy]=useState(false);
+  const[status,setStatus]=useState("");
+  const[token,setToken]=useState("");
+  const[ready,setReady]=useState(false);
+  const[key,setKey]=useState(0);
+  const[email,setEmail]=useState(searchParams.get("email")||"");
+  const[remember,setRemember]=useState(true);
+  const lock=useRef(false);
+  const reason=searchParams.get("reason");
+  const registered=searchParams.get("registered")==="1";
+  const reasonText=registered?text.auth.registered:reason==="session-expired"?text.auth.sessionExpired:reason==="password-changed"?text.auth.resetSaved:"";
+
+  useEffect(()=>setStatus(""),[locale]);
+  useEffect(()=>{const incoming=searchParams.get("email");if(incoming)setEmail(incoming)},[searchParams]);
+  function resetChallenge(){setToken("");setReady(false);setKey(v=>v+1)}
+  function message(code:string){if(code==="INVALID_CREDENTIALS")return text.auth.loginFailed;if(code==="EMAIL_NOT_VERIFIED")return text.auth.verifyFirst;if(code==="RATE_LIMIT")return text.auth.rateLimit;if(code==="BOT_CHECK_FAILED")return text.auth.botFailed;if(code==="SECURITY_UNAVAILABLE")return text.auth.securityUnavailable;return text.auth.serviceError}
+
+  async function login(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();if(lock.current)return;setStatus("");if(!ready){setStatus(text.auth.securityWaiting);return}
+    const data=new FormData(e.currentTarget);const normalizedEmail=String(data.get("email")||"").trim().toLowerCase();const password=String(data.get("password")||"");
+    lock.current=true;setBusy(true);
+    try{
+      const r=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email:normalizedEmail,password,turnstileToken:token,remember})});
+      const x=await r.json().catch(()=>({}));resetChallenge();
+      if(!r.ok){
+        if(x.error==="EMAIL_NOT_VERIFIED"){
+          await fetch("/api/auth/resend-verification",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email:normalizedEmail,locale})}).catch(()=>null);
+          router.push(`/register?verify=${encodeURIComponent(normalizedEmail)}`);return;
+        }
+        setStatus(message(String(x.error||"")));return;
+      }
+      const next=searchParams.get("next");router.replace(next?.startsWith("/")&&!next.startsWith("//")?next:"/dashboard");router.refresh();
+    }catch{resetChallenge();setStatus(text.auth.serviceError)}finally{lock.current=false;setBusy(false)}
+  }
+
+  return <div className="auth-card auth-card-readable">
+    <div className="auth-heading"><span>{text.auth.area}</span><h1>{text.auth.loginTitle}</h1><p>{text.auth.loginText}</p></div>
+    <form className="auth-form" onSubmit={login}>
+      <label>{text.auth.email}<input name="email" type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder={text.contact.placeholderEmail}/></label>
+      <label>{text.auth.password}<span className="password-input"><input name="password" type={visible?"text":"password"} autoComplete="current-password" required placeholder={text.auth.password}/><button type="button" onClick={()=>setVisible(v=>!v)}>{visible?text.auth.hide:text.auth.show}</button></span></label>
+      <div className="auth-options"><label className="remember-option"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/><span className="custom-check" aria-hidden="true">{remember?"✓":""}</span><span>{text.auth.remember}</span></label><Link className="text-button forgot-link" href="/forgot-password">{text.auth.forgot}</Link></div>
+      <BotChallenge key={key} action="login" onToken={setToken} onReady={setReady}/>{!ready&&<small className="security-status">{text.auth.securityWaiting}</small>}
+      <button className="button button-primary auth-submit" disabled={busy||!ready}>{busy?text.auth.loggingIn:text.auth.login}</button>
+    </form>
+    <p className={`auth-status ${status||reasonText?"show":""}`} aria-live="polite">{status||reasonText}</p>
+    <p className="auth-switch">{text.auth.noAccount} <Link href="/register">{text.auth.makeAccount}</Link></p>
+  </div>
+}

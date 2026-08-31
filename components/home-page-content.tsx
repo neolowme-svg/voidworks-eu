@@ -48,7 +48,7 @@ export function HomePageContent() {
     </div></section>
 
     <section className="section contact-section" id="contact"><div className="container contact-grid">
-      <div className="contact-copy" data-reveal><span className="eyebrow">{text.contact.kicker}</span><h2>{text.contact.title}</h2><p>{text.contact.intro}</p><div className="contact-links"><a href="mailto:info@voidworks.eu">info@voidworks.eu</a><a href="https://discord.gg/SBtnUvrzg6" target="_blank" rel="noreferrer">Discord ↗</a></div></div><div data-reveal><ContactForm /></div>
+      <div className="contact-copy" data-reveal><span className="eyebrow">{text.contact.kicker}</span><h2>{text.contact.title}</h2><p>{text.contact.intro}</p><div className="contact-project-cta"><Link className="button button-primary" href="/project-request/landing?addons=hosting%2Cvip">{text.contact.requestProject}</Link><span>{text.pricing.from} €200</span></div><div className="contact-links"><a href="mailto:info@voidworks.eu">info@voidworks.eu</a><a href="https://discord.gg/SBtnUvrzg6" target="_blank" rel="noreferrer">Discord ↗</a></div></div><div data-reveal><ContactForm /></div>
     </div></section>
   </main>;
 }

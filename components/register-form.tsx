@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { usePreferences } from "@/components/preferences-provider";
 import { BotChallenge } from "@/components/bot-challenge";
 
@@ -152,10 +151,6 @@ export function RegisterForm() {
     inputs.current[Math.max(0, Math.min(clean.length, OTP_LENGTH) - 1)]?.focus();
   }
 
-  async function startSession() {
-    const response = await fetch("/api/auth/session/start", { method:"POST", credentials:"same-origin" });
-    return response.ok;
-  }
 
   async function verify(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -174,31 +169,8 @@ export function RegisterForm() {
         return;
       }
 
-      // If this modal was opened from the login page we do not know the password.
-      if (!password) {
-        setVerifyOpen(false);
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email:pendingEmail, password });
-      if (error) {
-        setVerifyOpen(false);
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-      if (!(await startSession())) {
-        await supabase.auth.signOut({ scope:"local" });
-        setVerifyOpen(false);
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
       setVerifyOpen(false);
-      router.replace("/dashboard");
+      router.replace(`/login?email=${encodeURIComponent(pendingEmail)}&registered=1`);
       router.refresh();
     } catch {
       setStatus(text.auth.verificationFailed);

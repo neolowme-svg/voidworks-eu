@@ -312,3 +312,101 @@ html[data-theme="light"] .project-request-form label,html[data-theme="light"] .s
 
 @media(max-width:1050px){.pricing-packages-only{grid-template-columns:1fr 1fr}.project-request-layout,.project-detail-grid,.admin-project-detail-grid{grid-template-columns:1fr}.request-summary-card{position:static}.settings-grid{grid-template-columns:1fr}.danger-settings{grid-column:auto}}
 @media(max-width:720px){.brand{width:154px;height:42px}.brand img{height:36px!important;max-width:154px!important}.pricing-packages-only,.package-addon-list{grid-template-columns:1fr}.package-modal-backdrop{padding:10px}.package-modal{max-height:calc(100vh - 20px);padding:21px;border-radius:15px}.package-modal-head h2{font-size:29px}.package-modal-summary{align-items:stretch;flex-direction:column}.package-modal-summary .button{width:100%}.project-request-form{padding:20px}.request-heading h1{font-size:39px}.request-summary-card{padding:20px}.settings-heading,.project-detail-heading{align-items:flex-start;flex-direction:column}.settings-heading .button,.project-detail-heading .button{width:100%}.admin-stats{grid-template-columns:1fr}.message-bubble{max-width:96%}.request-success-actions{display:grid}.request-success-actions .button{width:100%}.contact-links{align-items:stretch;flex-direction:column}.contact-links a{justify-content:center;width:100%}}
+
+/* --------------------------------------------------------------------------
+   Voidworks v14 interaction + readability fixes
+   -------------------------------------------------------------------------- */
+.pricing-select{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-height:48px!important;
+  margin-top:auto!important;
+  padding:0 18px!important;
+  border:1px solid transparent!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  line-height:1!important;
+  text-align:center!important;
+}
+html[data-theme="light"] .pricing-select{color:#fff!important;-webkit-text-fill-color:#fff!important}
+
+.package-modal-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:9999!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100vw!important;
+  height:100dvh!important;
+  padding:24px!important;
+  overflow:hidden!important;
+}
+.package-modal{
+  width:min(820px,calc(100vw - 48px))!important;
+  max-height:calc(100dvh - 48px)!important;
+  margin:0!important;
+  overflow:auto!important;
+  overscroll-behavior:contain;
+}
+.package-modal-summary .button{color:#fff!important;-webkit-text-fill-color:#fff!important}
+
+.auth-options{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:-2px}
+.remember-option{display:flex!important;align-items:center!important;grid-template-columns:none!important;gap:9px!important;cursor:pointer;color:var(--muted)!important;font-size:13px!important;font-weight:750!important}
+.remember-option>input{position:absolute!important;opacity:0!important;pointer-events:none!important;width:1px!important;height:1px!important}
+.remember-option .custom-check{flex:0 0 auto;width:20px;height:20px;border-radius:5px}
+.remember-option input:focus-visible+.custom-check{outline:2px solid #9b7cff;outline-offset:2px}
+
+.contact-project-cta{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-top:23px}
+.contact-project-cta .button{min-width:164px;color:#fff!important}
+.contact-project-cta>span{color:var(--muted);font-size:13px;font-weight:800}
+
+.settings-shell{max-width:980px!important;gap:24px!important}
+.settings-heading{align-items:flex-start!important}
+.settings-heading>div{min-width:0}
+.settings-heading .eyebrow{margin-bottom:8px}
+.settings-heading h1{font-size:clamp(38px,5vw,56px)!important}
+.settings-heading p{max-width:620px!important;margin-top:13px!important}
+.settings-back{flex:0 0 auto;white-space:nowrap}
+.settings-stack{display:grid;gap:14px}
+.settings-card-wide{padding:28px!important;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.settings-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.settings-card-head>div{display:flex;align-items:center;gap:12px}.settings-card-head h2{margin:0!important}.settings-card-head>p{max-width:430px;margin:2px 0 0!important;text-align:right;color:var(--muted)!important;font-size:13px!important;line-height:1.55!important}
+.settings-step{display:grid;place-items:center;width:30px;height:30px;border:1px solid #37285f;border-radius:8px;background:#090612;color:#9875ff;font-size:11px;font-weight:900}
+.settings-fields{display:grid;gap:14px;padding-top:19px}.settings-fields.two{grid-template-columns:1fr 1fr}
+.settings-card label{display:grid;gap:8px;color:#b2b2bb;font-size:14px;font-weight:760}
+.settings-card input{width:100%;height:50px;padding:0 14px;border:1px solid #1d1d22;border-radius:9px;background:#010102;color:var(--text);outline:none;font-size:15px}
+.settings-card input:focus{border-color:#6337db;box-shadow:0 0 0 3px rgba(114,64,255,.1)}
+.settings-card .password-input button{font-size:12px}
+.settings-actions{display:flex;justify-content:flex-end;margin-top:5px;padding-top:18px;border-top:1px solid var(--line)}
+.settings-actions .button{min-width:190px}
+.settings-status{min-height:26px;padding:0 2px;color:#9fd8ba!important;font-size:14px!important;font-weight:750}
+.danger-settings{border-color:#342026!important}.danger-settings .settings-step{border-color:#5b2930;background:#100608;color:#ef8790}.danger-settings>p{padding-top:18px!important}
+
+.site-header .brand{overflow:visible!important}
+.site-header .brand img{width:auto!important;height:42px!important;max-width:188px!important;object-fit:contain!important;object-position:left center!important}
+.mobile-menu.open{max-height:calc(100dvh - 72px)!important;overflow-y:auto!important;overscroll-behavior:contain}
+.mobile-nav{padding-bottom:max(24px,env(safe-area-inset-bottom))!important}
+.mobile-nav a{font-size:14px!important;min-height:46px;display:flex;align-items:center}
+.mobile-preferences{padding-top:12px;padding-bottom:4px}
+
+html[data-theme="light"] .settings-card-wide{background:#fff;border-color:#dedee5}
+html[data-theme="light"] .settings-card input{background:#fff;border-color:#d5d5dc;color:#17171c}
+html[data-theme="light"] .settings-step{background:#f3efff;border-color:#d8caff;color:#6034d9}
+html[data-theme="light"] .remember-option{color:#575761!important}
+
+@media(max-width:720px){
+  .package-modal-backdrop{padding:10px!important;align-items:center!important}
+  .package-modal{width:calc(100vw - 20px)!important;max-height:calc(100dvh - 20px)!important}
+  .package-addon-list{grid-template-columns:1fr!important}
+  .auth-options{align-items:flex-start;flex-direction:column;gap:10px}
+  .settings-card-wide{padding:20px!important}
+  .settings-card-head{flex-direction:column;gap:8px}.settings-card-head>p{text-align:left}
+  .settings-fields.two{grid-template-columns:1fr}
+  .settings-actions{justify-content:stretch}.settings-actions .button{width:100%;min-width:0}
+  .settings-back{width:100%}
+  .contact-project-cta{display:grid}.contact-project-cta .button{width:100%}
+  .mobile-menu.open{max-height:calc(100dvh - 62px)!important}
+}

@@ -16,6 +16,7 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const email = String(body.email || "").trim().toLowerCase().slice(0, 160);
     const password = String(body.password || "");
+    const remember = body.remember !== false;
     const ip = getClientIp(request);
 
     if (!emailPattern.test(email) || !password) {
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     await linkProjectRequestsToUser(data.user);
-    await createAppSession(data.user.id);
+    await createAppSession(data.user.id, remember);
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown";
