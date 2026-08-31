@@ -1,0 +1,8 @@
+import {NextResponse} from "next/server";
+import {getAuthorizedAdmin} from "@/lib/security/admin-api";
+import {createAdminClient} from "@/lib/supabase/admin";
+import {requireCsrf} from "@/lib/security/csrf";
+import {rejectCrossOrigin} from "@/lib/security/request";
+import {sendProjectMessageEmail} from "@/lib/email/resend";
+import {ADMIN_EMAIL} from "@/lib/security/config";
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){const cross=rejectCrossOrigin(request);if(cross)return cross;if(!(await requireCsrf(request)))return NextResponse.json({error:"CSRF"},{status:403});const auth=await getAuthorizedAdmin();if(!auth)return NextResponse.json({error:"FORBIDDEN"},{status:403});try{const{id}=await params;const{body}=await request.json() as{body?:string};const message=String(body||"").trim().slice(0,12000);if(!message)return NextResponse.json({error:"INVALID_INPUT"},{status:400});const admin=createAdminClient();const{data:project}=await admin.from("project_requests").select("id,requester_email,requester_name,company_name,locale").eq("id",id).maybeSingle();if(!project)return NextResponse.json({error:"NOT_FOUND"},{status:404});const{error}=await admin.from("project_messages").insert({project_id:id,sender_role:"admin",sender_email:ADMIN_EMAIL,body:message,source:"dashboard"});if(error)return NextResponse.json({error:"SAVE_FAILED"},{status:500});await sendProjectMessageEmail({to:project.requester_email,projectId:id,companyName:project.company_name,body:message,locale:project.locale||"en",senderName:"Voidworks"});return NextResponse.json({ok:true});}catch{return NextResponse.json({error:"REPLY_FAILED"},{status:500})}}

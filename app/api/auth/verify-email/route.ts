@@ -3,6 +3,7 @@ import { findAuthUserByEmail } from "@/lib/security/users";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIp, rejectCrossOrigin } from "@/lib/security/request";
 import { syncProfileBestEffort, verifyUserCode } from "@/lib/security/email-verification";
+import { linkProjectRequestsToUser } from "@/lib/projects";
 
 export async function POST(request: Request) {
   const crossOrigin = rejectCrossOrigin(request);
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const refreshed = await findAuthUserByEmail(email);
-    if (refreshed) await syncProfileBestEffort(refreshed);
+    if (refreshed) { await syncProfileBestEffort(refreshed); await linkProjectRequestsToUser(refreshed); }
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown";

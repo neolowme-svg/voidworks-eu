@@ -21,7 +21,7 @@ export function BotChallenge({
 }: {
   onToken: (token: string) => void;
   onReady?: (ready: boolean) => void;
-  action: "login" | "register" | "password_reset" | "contact";
+  action: "login" | "register" | "password_reset" | "contact" | "project_request";
 }) {
   const { text, locale } = usePreferences();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;

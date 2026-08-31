@@ -1,27 +1,22 @@
-# Voidworks v10 e-mail setup
+# Voidworks email setup
 
-V10 gebruikt een eigen server-side verificatiecode via Resend. De registratiecode is daarom altijd exact **6 cijfers** en is niet afhankelijk van Supabase's ingebouwde OTP-lengte.
+Outgoing application emails are sent through the Resend API using `RESEND_API_KEY` and the sender:
 
-## Verplicht
-1. Resend -> Domains -> `voidworks.eu` moet `Verified` zijn.
-2. Vercel -> `voidworks-eu` -> Settings -> Environment Variables:
-   - `RESEND_API_KEY`
-   - `APP_SECURITY_SECRET`
-   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-   - `TURNSTILE_SECRET_KEY`
-   - `ADMIN_EMAIL=neolowme@gmail.com`
-3. De bestaande Supabase environment variables moeten aanwezig blijven.
-4. Redeploy na wijzigingen aan environment variables.
-
-Registratiemail:
 `Voidworks <no-reply@voidworks.eu>`
 
-De 6-cijferige code verloopt na 10 minuten. Alleen een HMAC-hash van de code wordt opgeslagen.
+The app generates its own exact six-digit verification/security/reset codes. Codes expire after 15 minutes and only HMAC hashes are stored.
 
-## Database
-Run `supabase/schema.sql` volledig in Supabase -> SQL Editor als de v9/v10 migratie nog niet is uitgevoerd. Het script is idempotent.
+## Outgoing mail
 
-## Bestaand / verwijderd e-mailadres
-- Bestaat het Auth-account én het Voidworks-profiel nog, dan toont registratie alleen: `Dit e-mailadres is al geregistreerd.`
-- Is alleen het profiel verwijderd en bestaat er nog een verweesd Supabase Auth-record, dan verwijdert v10 dat verweesde record tijdens een nieuwe registratie en maakt het account opnieuw aan.
-- Dashboard -> Account verwijderen verwijdert het echte Supabase Auth-account en gekoppelde applicatiegegevens.
+Verify `voidworks.eu` in Resend and keep the required Resend DNS records in Cloudflare. Put the current Resend API key in Vercel as `RESEND_API_KEY`.
+
+## Reply-to-project sync
+
+To make replies from the admin mailbox also appear inside the Voidworks project conversation:
+
+1. Enable Resend Receiving on a managed receiving domain or on `reply.voidworks.eu`.
+2. Add the exact receiving DNS/MX records shown by Resend to Cloudflare.
+3. Add `RESEND_INBOUND_DOMAIN=reply.voidworks.eu` (or the managed Resend receiving domain) to Vercel.
+4. Add a Resend webhook for `email.received` pointing to `https://voidworks.eu/api/webhooks/resend/inbound`.
+5. Put its signing secret in Vercel as `RESEND_WEBHOOK_SECRET`.
+6. Redeploy.

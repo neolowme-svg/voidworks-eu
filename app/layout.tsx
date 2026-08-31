@@ -7,7 +7,8 @@ import { MotionInit } from "@/components/motion-init";
 import { PreferencesProvider } from "@/components/preferences-provider";
 import { CookieConsent } from "@/components/cookie-consent";
 import { SkipLink } from "@/components/skip-link";
-import type { Locale } from "@/lib/i18n";
+import type { Locale, Theme } from "@/lib/i18n";
+import type { Consent } from "@/components/preferences-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://voidworks.eu"),
@@ -42,10 +43,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const savedLocale = cookieStore.get("vw_locale")?.value;
   const country = requestHeaders.get("x-vercel-ip-country") || requestHeaders.get("cf-ipcountry");
   const initialLocale = validLocale(savedLocale) ? savedLocale : localeFromCountry(country);
+  const consentValue = cookieStore.get("vw_consent")?.value;
+  const initialConsent: Consent = consentValue === "essential" || consentValue === "preferences" ? consentValue : "unset";
+  const themeValue = cookieStore.get("vw_theme")?.value;
+  const initialTheme: Theme = initialConsent === "preferences" && (themeValue === "light" || themeValue === "dark") ? themeValue : "dark";
 
-  return <html lang={initialLocale} data-theme="dark">
+  return <html lang={initialLocale} data-theme={initialTheme}>
     <body>
-      <PreferencesProvider initialLocale={initialLocale}>
+      <PreferencesProvider initialLocale={initialLocale} initialConsent={initialConsent} initialTheme={initialTheme}>
         <SkipLink />
         <SiteHeader />
         <div className="route-stage" id="main-content" tabIndex={-1}>{children}</div>

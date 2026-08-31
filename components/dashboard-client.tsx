@@ -1,53 +1,10 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { usePreferences } from "@/components/preferences-provider";
-import { SignOutButton } from "@/components/sign-out-button";
-import { getCsrfToken } from "@/lib/security/csrf-client";
-
-type ClientProject = { id:string; name:string; status:string; description:string|null; live_url:string|null; updated_at:string };
-
-export function DashboardClient({ name, email, projects, isAdmin }: { name:string; email:string; projects:ClientProject[]; isAdmin:boolean }) {
-  const { locale, text } = usePreferences();
-  const router = useRouter();
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-
-  async function removeAccount() {
-    setDeleting(true); setDeleteError("");
-    try {
-      const csrf = await getCsrfToken();
-      const response = await fetch("/api/account/delete", { method:"DELETE", headers:{"x-voidworks-csrf":csrf} });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(text.dashboard.deleteFailed);
-      const supabase = createClient();
-      await supabase.auth.signOut({ scope:"local" });
-      router.replace("/register");
-      router.refresh();
-    } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : text.dashboard.deleteFailed);
-      setDeleting(false);
-    }
-  }
-
-  const formatDate = (value:string) => new Intl.DateTimeFormat(locale === "en" ? "en-GB" : locale === "de" ? "de-DE" : "nl-NL", { day:"2-digit", month:"short", year:"numeric" }).format(new Date(value));
-  const safeExternalUrl = (value:string|null) => { try { const url=new URL(value || ""); return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null; } catch { return null; } };
-
-  return <main className="page dashboard-page"><section className="dashboard-section"><div className="container dashboard-shell">
-    <div className="dashboard-top"><div><span className="eyebrow">{text.dashboard.eyebrow}</span><h1>{text.dashboard.welcome}, {name}.</h1><p>{text.dashboard.intro}</p></div><div className="dashboard-top-actions">{isAdmin && <Link className="button button-secondary" href="/admin">{text.dashboard.admin}</Link>}<SignOutButton /></div></div>
-    <div className="dashboard-stats"><article><span>{text.dashboard.projects}</span><strong>{projects.length}</strong><small>{text.dashboard.linked}</small></article><article><span>{text.dashboard.email}</span><strong className="dashboard-email">{email}</strong><small>{text.dashboard.confirmed}</small></article><article><span>{text.dashboard.status}</span><strong className="status-online"><i/>{text.dashboard.active}</strong><small>{text.dashboard.secure}</small></article></div>
-    <div className="dashboard-grid"><section className="dashboard-panel"><div className="panel-heading"><div><span className="eyebrow">{text.dashboard.projects}</span><h2>{text.dashboard.yourProjects}</h2></div><span className="count-pill">{projects.length}</span></div>
-      {projects.length ? <div className="dashboard-projects">{projects.map((project) => <article className="dashboard-project" key={project.id}><div className="dashboard-project-head"><div><span className="project-status">{project.status}</span><h3>{project.name}</h3></div><time>{formatDate(project.updated_at)}</time></div>{project.description && <p>{project.description}</p>}{safeExternalUrl(project.live_url) && <a href={safeExternalUrl(project.live_url) ?? "#"} target="_blank" rel="noopener noreferrer">{text.dashboard.openProject}</a>}</article>)}</div>
-      : <div className="dashboard-empty"><div className="dashboard-empty-icon">V</div><h3>{text.dashboard.noProject}</h3><p>{text.dashboard.noProjectText}</p><Link className="button button-primary" href="/#contact">{text.dashboard.start}</Link></div>}
-    </section>
-    <aside className="dashboard-panel account-panel"><span className="eyebrow">{text.dashboard.account}</span><h2>{text.dashboard.accountDetails}</h2><div className="account-list"><div><span>{text.dashboard.name}</span><strong>{name}</strong></div><div><span>{text.dashboard.email}</span><strong>{email}</strong></div><div><span>{text.dashboard.verification}</span><strong className="verified-state"><i/>{text.dashboard.verified}</strong></div></div><a className="button button-secondary" href="mailto:info@voidworks.eu">{text.dashboard.contact}</a><button className="button danger-button" type="button" onClick={() => setDeleteOpen(true)}>{text.dashboard.delete}</button></aside>
-    </div>
-  </div></section>
-
-  {deleteOpen && <div className="modal-backdrop" role="presentation"><div className="verify-modal delete-modal" role="dialog" aria-modal="true"><span className="eyebrow">{text.dashboard.account}</span><h2>{text.dashboard.deleteTitle}</h2><p>{text.dashboard.deleteText}</p>{deleteError && <p className="delete-error">{deleteError}</p>}<div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setDeleteOpen(false)} disabled={deleting}>{text.dashboard.cancel}</button><button className="button danger-button solid" type="button" onClick={removeAccount} disabled={deleting}>{deleting?text.dashboard.deleting:text.dashboard.deleteConfirm}</button></div></div></div>}
-  </main>;
-}
+import {usePreferences} from "@/components/preferences-provider";
+import {SignOutButton} from "@/components/sign-out-button";
+import {portalCopy,projectStatusLabels} from "@/lib/portal-i18n";
+import {packages} from "@/lib/project-catalog";
+const DISCORD_URL="https://discord.gg/SBtnUvrzg6";
+type Project={id:string;request_code:string;company_name:string;package_id:string;status:string;one_time_total:number;monthly_total:number;live_url:string|null;created_at:string;updated_at:string};
+export function DashboardClient({name,username,email,projects,isAdmin}:{name:string;username:string;email:string;projects:Project[];isAdmin:boolean}){const{locale,text}=usePreferences();const p=portalCopy[locale].projects;const format=(v:string)=>new Intl.DateTimeFormat(locale==="en"?"en-GB":locale==="de"?"de-DE":"nl-NL",{day:"2-digit",month:"short",year:"numeric"}).format(new Date(v));return <main className="page dashboard-page"><section className="dashboard-section"><div className="container dashboard-shell"><div className="dashboard-top"><div><span className="eyebrow">{text.dashboard.eyebrow}</span><h1>{text.dashboard.welcome}, {name}.</h1><p>{text.dashboard.intro}</p></div><div className="dashboard-top-actions">{isAdmin&&<Link className="button button-secondary" href="/admin">{text.dashboard.admin}</Link>}<Link className="button button-secondary" href="/account/settings">{portalCopy[locale].settings.title}</Link><SignOutButton/></div></div><div className="dashboard-stats"><article><span>{text.dashboard.projects}</span><strong>{projects.length}</strong><small>{text.dashboard.linked}</small></article><article><span>{text.dashboard.email}</span><strong className="dashboard-email">{email}</strong><small>{text.dashboard.confirmed}</small></article><article><span>{text.dashboard.status}</span><strong className="status-online"><i/>{text.dashboard.active}</strong><small>{text.dashboard.secure}</small></article></div><div className="dashboard-grid"><section className="dashboard-panel"><div className="panel-heading"><div><span className="eyebrow">{p.title}</span><h2>{text.dashboard.yourProjects}</h2></div><Link className="button button-primary small-button" href="/#prijzen">{p.start}</Link></div>{projects.length?<div className="dashboard-projects">{projects.map(project=>{const pack=packages.find(x=>x.id===project.package_id);return <Link className="dashboard-project project-link-card" href={`/dashboard/projects/${project.id}`} key={project.id}><div className="dashboard-project-head"><div><span className="project-status">{projectStatusLabels[locale][project.status]||project.status}</span><h3>{project.company_name}</h3></div><time>{format(project.updated_at)}</time></div><p>{pack?.names[locale]||project.package_id} · {project.request_code}</p><span className="project-open-link">{p.open} →</span></Link>})}</div>:<div className="dashboard-empty"><Image className="dashboard-empty-logo" src="/assets/voidworks-mark.png" alt="Voidworks" width={72} height={72} unoptimized/><h3>{text.dashboard.noProject}</h3><p>{text.dashboard.noProjectText}</p><Link className="button button-primary" href="/#prijzen">{p.start}</Link></div>}</section><aside className="dashboard-panel account-panel"><span className="eyebrow">{text.dashboard.account}</span><h2>{text.dashboard.accountDetails}</h2><div className="account-list"><div><span>{text.dashboard.name}</span><strong>{name}</strong></div>{username&&<div><span>{portalCopy[locale].settings.username}</span><strong>@{username}</strong></div>}<div><span>{text.dashboard.email}</span><strong>{email}</strong></div><div><span>{text.dashboard.verification}</span><strong className="verified-state"><i/>{text.dashboard.verified}</strong></div></div><Link className="button button-primary" href="/account/settings">{portalCopy[locale].settings.title}</Link><a className="button button-secondary" href="mailto:info@voidworks.eu">{text.dashboard.contact}</a><a className="button button-secondary" href={DISCORD_URL} target="_blank" rel="noreferrer">Discord ↗</a></aside></div></div></section></main>}

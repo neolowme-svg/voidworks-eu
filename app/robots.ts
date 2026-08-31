@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/admin", "/dashboard", "/login", "/register", "/reset-password", "/auth/"] },
+    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/admin", "/dashboard", "/login", "/register", "/reset-password", "/forgot-password", "/account/", "/project-request/", "/auth/"] },
     sitemap: "https://voidworks.eu/sitemap.xml",
     host: "https://voidworks.eu",
   };

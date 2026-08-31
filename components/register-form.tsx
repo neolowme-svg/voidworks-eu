@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -41,6 +42,7 @@ export function RegisterForm() {
   const [challengeKey, setChallengeKey] = useState(0);
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
   const submitLock = useRef(false);
+  const prefillEmail = searchParams.get("email") || "";
   const strength = useMemo(() => passwordStrength(password), [password]);
   const code = digits.join("");
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
@@ -232,7 +234,7 @@ export function RegisterForm() {
       <div className="auth-heading"><span>{text.auth.area}</span><h1>{text.auth.registerTitle}</h1><p>{text.auth.registerText}</p></div>
       <form className="auth-form" onSubmit={register}>
         <label>{text.auth.name}<input name="name" type="text" autoComplete="name" minLength={2} maxLength={80} required placeholder={text.auth.namePlaceholder} /></label>
-        <label>{text.auth.email}<input name="email" type="email" autoComplete="email" required placeholder={text.contact.placeholderEmail} /></label>
+        <label>{text.auth.email}<input name="email" type="email" autoComplete="email" required defaultValue={prefillEmail} placeholder={text.contact.placeholderEmail} /></label>
         <label>{text.auth.password}<span className="password-input"><input name="password" type={visible ? "text" : "password"} autoComplete="new-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={text.auth.passwordPlaceholder} /><button type="button" onClick={() => setVisible((value) => !value)}>{visible ? text.auth.hide : text.auth.show}</button></span></label>
         <div className="strength" data-score={strength.count}>
           <div className="strength-head"><span>{text.auth.strength}</span><strong>{strengthLabel}</strong></div>
@@ -251,7 +253,7 @@ export function RegisterForm() {
     </div>
 
     {verifyOpen && <div className="modal-backdrop"><div className="verify-modal" role="dialog" aria-modal="true" aria-labelledby="verify-title">
-      <div className="verify-topline"><div className="verify-icon">V</div><span className="verify-state"><i />{text.auth.codeSent}</span></div>
+      <div className="verify-topline"><div className="verify-icon"><Image src="/assets/voidworks-mark.png" alt="Voidworks" width={42} height={42} unoptimized /></div><span className="verify-state"><i />{text.auth.codeSent}</span></div>
       <span className="eyebrow">{text.auth.verifyEyebrow}</span>
       <h2 id="verify-title">{text.auth.verifyTitle}</h2>
       <p>{text.auth.verifyText} <strong>{pendingEmail}</strong>. {pendingName && <span>{pendingName}, </span>}{text.auth.codeHint}</p>

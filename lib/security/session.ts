@@ -1,58 +1,8 @@
-import { cookies } from "next/headers";
-import { createHmac, randomBytes, timingSafeEqual } from "crypto";
-import { APP_SESSION_DAYS } from "@/lib/security/config";
-
-const COOKIE = "vw_session";
-
-function appSecret() {
-  const value = process.env.APP_SECURITY_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-  if (!value) throw new Error("APP_SECURITY_SECRET missing");
-  return value;
-}
-
-function sign(value: string) {
-  return createHmac("sha256", appSecret()).update(value).digest("base64url");
-}
-
-function safeEqual(a: string, b: string) {
-  try {
-    const aa = Buffer.from(a);
-    const bb = Buffer.from(b);
-    return aa.length === bb.length && timingSafeEqual(aa, bb);
-  } catch {
-    return false;
-  }
-}
-
-export async function createAppSession(userId: string) {
-  const expires = Math.floor(Date.now() / 1000) + APP_SESSION_DAYS * 24 * 60 * 60;
-  const nonce = randomBytes(18).toString("base64url");
-  const payload = `${userId}.${expires}.${nonce}`;
-  const value = `${payload}.${sign(payload)}`;
-  const store = await cookies();
-  store.set(COOKIE, value, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: APP_SESSION_DAYS * 24 * 60 * 60,
-  });
-}
-
-export async function validateAppSession(userId: string) {
-  const store = await cookies();
-  const raw = store.get(COOKIE)?.value;
-  if (!raw) return false;
-  const parts = raw.split(".");
-  if (parts.length !== 4) return false;
-  const [storedUserId, expiresRaw, nonce, signature] = parts;
-  const expires = Number(expiresRaw);
-  if (storedUserId !== userId || !Number.isFinite(expires) || expires <= Math.floor(Date.now() / 1000) || !nonce || !signature) return false;
-  const payload = `${storedUserId}.${expiresRaw}.${nonce}`;
-  return safeEqual(signature, sign(payload));
-}
-
-export async function revokeCurrentAppSession() {
-  const store = await cookies();
-  store.delete(COOKIE);
-}
+import {cookies} from "next/headers";
+import {randomToken,hashSecret} from "@/lib/security/crypto";
+import {APP_SESSION_DAYS} from "@/lib/security/config";
+import {createAdminClient} from "@/lib/supabase/admin";
+const COOKIE="vw_session";
+export async function createAppSession(userId:string){const token=randomToken(32);const expiresAt=new Date(Date.now()+APP_SESSION_DAYS*24*60*60*1000);const admin=createAdminClient();try { await admin.from("app_sessions").delete().eq("user_id",userId).lt("expires_at",new Date().toISOString()); } catch {}const{error}=await admin.from("app_sessions").insert({user_id:userId,token_hash:hashSecret(token,"app-session"),expires_at:expiresAt.toISOString()});if(error)throw new Error("SESSION_CREATE_FAILED");const store=await cookies();store.set(COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:APP_SESSION_DAYS*24*60*60});}
+export async function validateAppSession(userId:string){const store=await cookies();const token=store.get(COOKIE)?.value;if(!token)return false;try{const admin=createAdminClient();const{data,error}=await admin.from("app_sessions").select("id,expires_at,revoked_at").eq("user_id",userId).eq("token_hash",hashSecret(token,"app-session")).maybeSingle();if(error||!data||data.revoked_at||new Date(data.expires_at).getTime()<=Date.now()){store.delete(COOKIE);return false}try { await admin.from("app_sessions").update({last_seen_at:new Date().toISOString()}).eq("id",data.id); } catch {}return true}catch{return false}}
+export async function revokeCurrentAppSession(){const store=await cookies();const token=store.get(COOKIE)?.value;if(token){try{const admin=createAdminClient();await admin.from("app_sessions").update({revoked_at:new Date().toISOString()}).eq("token_hash",hashSecret(token,"app-session"))}catch{}}store.delete(COOKIE)}

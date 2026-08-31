@@ -45,8 +45,8 @@ export function SiteHeader() {
   return <header className="site-header">
     <div className="container nav-shell">
       <Link href="/" className="brand" aria-label={text.nav.home}>
-        <Image className="brand-dark" src="/assets/voidworks-wordmark.png" alt="Voidworks" width={460} height={150} priority unoptimized />
-        <Image className="brand-light" src="/assets/voidworks-wordmark-light.png" alt="Voidworks" width={460} height={150} priority unoptimized />
+        <Image className="brand-dark" src="/assets/voidworks-wordmark.png" alt="Voidworks" width={1918} height={671} priority unoptimized />
+        <Image className="brand-light" src="/assets/voidworks-wordmark-light.png" alt="Voidworks" width={1918} height={671} priority unoptimized />
       </Link>
 
       <nav className="desktop-nav" aria-label={text.nav.mainNavigation}>

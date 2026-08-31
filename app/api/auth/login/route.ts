@@ -4,6 +4,7 @@ import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIp, rejectCrossOrigin } from "@/lib/security/request";
 import { verifyTurnstile } from "@/lib/security/bot";
 import { createAppSession } from "@/lib/security/session";
+import { linkProjectRequestsToUser } from "@/lib/projects";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "EMAIL_NOT_VERIFIED" }, { status: 403, headers: { "Cache-Control": "no-store" } });
     }
 
+    await linkProjectRequestsToUser(data.user);
     await createAppSession(data.user.id);
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
